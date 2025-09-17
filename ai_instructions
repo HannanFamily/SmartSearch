@@ -1,0 +1,156 @@
+# AI Agent Instructions - Smart Search Dashboard Project# AI Agent Instructions - Smart Search Dashboard Project
+
+
+
+## Special Triggers## Initial Context Loading
+
+- **"Review project"**: Perform full context loading and project state assessment:1. **Review Key Documentation**:
+
+  1. Read DEVELOPMENT_LOG.md, copilot-instructions.md, and Workbook_Metadata.txt   - `.github/DEVELOPMENT_LOG.md` for project history and decisions
+
+  2. Check Git status and recent changes   - `.github/copilot-instructions.md` for architecture and patterns
+
+  3. Analyze current workspace structure   - Latest `Workbook_Metadata.txt` for current Excel structure
+
+  4. Provide summary of project state and pending work
+
+  5. Report any discrepancies or areas needing attention2. **Project State Assessment**:
+
+   - Check Git status and recent commits
+
+## Initial Context Loading   - Review any open issues or pending work
+
+1. **Review Key Documentation**:   - Verify workspace structure matches documentation
+
+   - `.github/DEVELOPMENT_LOG.md` for project history and decisions
+
+   - `.github/copilot-instructions.md` for architecture and patterns3. **Load Technical Context**:
+
+   - Latest `Workbook_Metadata.txt` for current Excel structure   - VBA module organization and dependencies
+
+   - Configuration tables and named ranges
+
+2. **Project State Assessment**:   - Search modes and their implementations
+
+   - Check Git status and recent commits
+
+   - Review any open issues or pending work## Agent Responsibilities
+
+   - Verify workspace structure matches documentation1. Write modular, well-commented VBA code using best practices for:
+
+   - Performance optimization
+
+3. **Load Technical Context**:   - Maintainability
+
+   - VBA module organization and dependencies   - Future scalability
+
+   - Configuration tables and named ranges
+
+   - Search modes and their implementations2. Use table-driven configuration and dynamic named ranges for:
+
+   - Search logic
+
+## Agent Responsibilities   - Filter operations
+
+1. Write modular, well-commented VBA code using best practices for:   - Output handling
+
+   - Performance optimization
+
+   - Maintainability3. Support ModeDrivenSearch integration through:
+
+   - Future scalability   - ModeConfigTable management
+
+   - Flexible search modes
+
+2. Use table-driven configuration and dynamic named ranges for:   - Custom handlers
+
+   - Search logic
+
+   - Filter operations4. Document thoroughly:
+
+   - Output handling   - Industrial terminology
+
+   - Dependencies
+
+3. Support ModeDrivenSearch integration through:   - Integration points
+
+   - ModeConfigTable management
+
+   - Flexible search modes5. Review and implement features from Dev Notes with focus on:
+
+   - Custom handlers   - Future-proofing
+
+   - Developer tools
+
+4. Document thoroughly:   - Diagnostic capabilities
+
+   - Industrial terminology
+
+   - Dependencies## Development Guidelines
+
+   - Integration points1. **Module Management**:
+
+   - Keep code consolidated during development
+
+5. Review and implement features from Dev Notes with focus on:   - Structure for future modularization
+
+   - Future-proofing   - Clear separation of concerns
+
+   - Developer tools
+
+   - Diagnostic capabilities2. **Documentation Standards**:
+
+   - Extensive inline documentation
+
+## Development Guidelines   - Dependency tracking in code
+
+1. **Module Management**:   - Update DEVELOPMENT_LOG.md for major changes
+
+   - Keep code consolidated during development
+
+   - Structure for future modularization3. **Git Integration**:
+
+   - Clear separation of concerns   - Always push changes after editing files
+
+   - Keep development log current
+
+2. **Documentation Standards**:   - Maintain clean commit history
+
+   - Extensive inline documentation
+
+   - Dependency tracking in code## Knowledge Base
+
+   - Update DEVELOPMENT_LOG.md for major changes- ESP_1.06 DEV STABLE.xlsm: Current workbook
+
+- README_ModeDrivenSearch.md: Search system docs
+
+3. **Git Integration**:- Excel: Tables, ranges, validation, formulas
+
+   - Always push changes after editing files- VBA: Architecture, optimization, handlers
+
+   - Keep development log current- Industrial systems: Equipment terminology
+
+   - Maintain clean commit history- Dev Notes: Project roadmap
+
+
+
+## Knowledge Base## Best Practices
+
+- ESP_1.06 DEV STABLE.xlsm: Current workbook- Use table-driven and config-driven logic
+
+- README_ModeDrivenSearch.md: Search system docs- Keep code modular and well-documented
+
+- Excel: Tables, ranges, validation, formulas- Use dynamic ranges and formula evaluation
+
+- VBA: Architecture, optimization, handlers- Prioritize maintainability and performance
+
+- Industrial systems: Equipment terminology- Integrate logging and developer tools
+
+- Dev Notes: Project roadmap
+
+## Best Practices
+- Use table-driven and config-driven logic
+- Keep code modular and well-documented
+- Use dynamic ranges and formula evaluation
+- Prioritize maintainability and performance
+- Integrate logging and developer tools

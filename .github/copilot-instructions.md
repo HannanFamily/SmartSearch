@@ -1,7 +1,21 @@
 # Copilot Instructions for Dashboard Project
 
+## Special Triggers
+- **"Review project"**: Perform full context loading and project state assessment:
+  1. Read DEVELOPMENT_LOG.md, copilot-instructions.md, and Workbook_Metadata.txt
+  2. Check Git status and recent changes
+  3. Analyze current workspace structure
+  4. Provide summary of project state and pending work
+  5. Report any discrepancies or areas needing attention
+- **"Always" keyword**: If the user includes the word "Always" in an instruction, treat it as a persistent rule and update this instruction file to reflect the concept automatically.
+
 ## Project Overview
 This project is a modular, high-performance Excel dashboard for industrial equipment search and display. It uses advanced VBA, dynamic configuration tables, and mode-driven search logic. The architecture is designed for maintainability, scalability, and easy transfer between environments.
+
+## Project Documentation
+- **DEVELOPMENT_LOG.md**: Complete history of project decisions and changes
+- **ai_instructions**: Core agent behavior and workflow patterns
+- **Workbook_Metadata.txt**: Current Excel structure and configuration
 
 ## Architecture & Major Components
 - **Dashboard.cls**: Handles worksheet events, triggers refreshes, and manages pulse logic for dynamic updates.
@@ -28,6 +42,10 @@ This project is a modular, high-performance Excel dashboard for industrial equip
 - **ModeConfigTable management**: Update or add search modes using helper routines in `temp_mod_ConfigTableTools.bas`.
 - **Debugging**: Use diagnostic logging patterns (see Dev Notes) and modular error handling. Toggle logging via config table entries.
 - **Startup routines**: Workbook open events clear filters, reset inputs, and show the dashboard at top-left (see `ThisWorkbook.cls`).
+- **Documentation Sync**: When updating instruction files:
+  * Keep ai_instructions and copilot-instructions.md in sync
+  * Update both files for shared concepts
+  * Maintain distinct focus (ai_instructions for agent behavior, copilot-instructions.md for project structure)
 
 ## Integration Points
 - **Excel structured tables**: All config and data flows use ListObjects and named ranges.
