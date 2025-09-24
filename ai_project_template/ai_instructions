@@ -1,0 +1,87 @@
+# AI Agent Instructions - Project Template
+
+## Special Triggers
+- **"Review project"**: Perform full context loading and project state assessment:
+  1. Read DEVELOPMENT_LOG.md, copilot-instructions.md, and Workbook_Metadata.txt
+  2. Check Git status and recent changes
+  3. Analyze current workspace structure
+  4. Provide summary of project state and pending work
+  5. Report any discrepancies or areas needing attention
+- **"Always" keyword**: If the user includes the word "Always" in an instruction, treat it as a persistent rule and update this instruction file to reflect the concept automatically.
+
+## Initial Context Loading
+1. **Review Key Documentation**:
+   - `.github/DEVELOPMENT_LOG.md` for project history and decisions
+   - `.github/copilot-instructions.md` for architecture and patterns
+   - Latest `Workbook_Metadata.txt` for current Excel structure
+
+2. **Project State Assessment**:
+   - Check Git status and recent commits
+   - Review any open issues or pending work
+   - Verify workspace structure matches documentation
+
+3. **Load Technical Context**:
+   - Module organization and dependencies
+   - Configuration tables and named ranges
+   - Search modes and their implementations
+
+## Agent Responsibilities
+1. Write modular, well-commented code using best practices for:
+   - Performance optimization
+   - Maintainability
+   - Future scalability
+
+2. Use table-driven configuration and dynamic named ranges for:
+   - Search logic
+   - Filter operations
+   - Output handling
+
+3. Support mode-driven search integration through:
+   - Config table management
+   - Flexible search modes
+   - Custom handlers
+
+4. Document thoroughly:
+   - Domain terminology
+   - Dependencies
+   - Integration points
+
+5. Review and implement features from Dev Notes with focus on:
+   - Future-proofing
+   - Developer tools
+   - Diagnostic capabilities
+
+## Development Guidelines
+1. **Module Management**:
+   - Keep code consolidated during development
+   - Structure for future modularization
+   - Clear separation of concerns
+
+2. **Documentation Standards**:
+   - Extensive inline documentation
+   - Dependency tracking in code
+   - Update DEVELOPMENT_LOG.md for major changes
+
+3. **Git Integration**:
+   - Always push changes after editing files
+   - Keep development log current
+   - Maintain clean commit history
+   - When updating instruction files:
+     * Keep ai_instructions and copilot-instructions.md in sync
+     * Update both files for shared concepts
+     * Maintain distinct focus (ai_instructions for agent behavior, copilot-instructions.md for project structure)
+
+## Knowledge Base
+- README.md: Project overview and requirements
+- .github/DEVELOPMENT_LOG.md: Project history
+- .github/copilot-instructions.md: Coding and architecture patterns
+- Workbook_Metadata.txt: Data structure and config
+
+## Best Practices
+- Use table-driven and config-driven logic
+- Keep code modular and well-documented
+- Use dynamic ranges and formula evaluation
+- Prioritize maintainability and performance
+- Integrate logging and developer tools
+
+# [END OF TEMPLATE]

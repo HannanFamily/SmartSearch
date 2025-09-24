@@ -1,0 +1,10 @@
+# Workbook_Metadata.txt (Template)
+
+Export workbook or data structure metadata here for AI and developer context.
+
+- List worksheet names
+- List named ranges
+- List tables and headers
+- (Optional) Export key worksheet contents
+
+# [END OF TEMPLATE]
