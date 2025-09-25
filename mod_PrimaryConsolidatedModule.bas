@@ -16,7 +16,7 @@ Attribute VB_Name = "mod_PrimaryConsolidatedModule"
 Option Explicit
 '
 '============================================================
-' EQUIPMENT SEARCH ENGINE (Dev) — Consolidated Single-Module Layout
+' EQUIPMENT SEARCH ENGINE (Dev) ï¿½ Consolidated Single-Module Layout
 '------------------------------------------------------------
 ' Purpose
 ' - Keep the runtime engine, config access, utilities, and diagnostics
@@ -73,7 +73,7 @@ Public Sub RefreshResults()
     If Len(Trim$(descTxt)) > 0 Or tagActive Then
         PerformSearch
     Else
-        OutputAllVisible
+        OutputNoResults
     End If
 
 CleanExit:
@@ -339,6 +339,66 @@ Public Sub OutputAllVisible()
     Exit Sub
 EH:
     LogErrorLocal "OutputAllVisible", Err.Number, Err.DESCRIPTION
+End Sub
+
+Public Sub OutputNoResults()
+    On Error GoTo EH
+
+    Dim dataLo As ListObject: Set dataLo = lo(DATA_TABLE_NAME)
+    If dataLo Is Nothing Or dataLo.DataBodyRange Is Nothing Then
+        MsgBox "Data table '" & DATA_TABLE_NAME & "' not found or empty.", vbExclamation
+        Exit Sub
+    End If
+
+    Dim resultsStart As Range, statusRng As Range
+    Set resultsStart = NR(GetConfigValue("ResultsStartCell"))
+    Set statusRng = NR(GetConfigValue("StatusCell"))
+    If resultsStart Is Nothing Then
+        MsgBox "Named range 'ResultsStartCell' not found.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Build dynamic output columns from Config for header row
+    Dim outCols() As Long, outKeys(1 To 8) As String
+    Dim i As Long, key As String, headerName As String
+    ReDim outCols(1 To 8)
+    outKeys(1) = "Out_Column1": outKeys(2) = "Out_Column2": outKeys(3) = "Out_Column3"
+    outKeys(4) = "Out_Column4": outKeys(5) = "Out_Column5": outKeys(6) = "Out_Column6"
+    outKeys(7) = "Out_Column7": outKeys(8) = "Out_Column8"
+
+    Dim colCount As Long: colCount = 0
+    For i = 1 To 8
+        key = outKeys(i)
+        headerName = GetConfigValue(key)
+        If Len(Trim$(headerName)) > 0 Then
+            Dim idx As Long: idx = HeaderIndexByText(dataLo, headerName)
+            If idx > 0 Then
+                colCount = colCount + 1
+                outCols(colCount) = idx
+            End If
+        End If
+    Next i
+    If colCount = 0 Then
+        MsgBox "No valid output columns found in ConfigTable.", vbExclamation
+        Exit Sub
+    End If
+    ReDim Preserve outCols(1 To colCount)
+
+    ' Write headers only
+    Dim hdr() As Variant
+    ReDim hdr(1 To 1, 1 To colCount)
+    For i = 1 To colCount
+        hdr(1, i) = CStr(dataLo.HeaderRowRange.Cells(1, outCols(i)).Value)
+    Next i
+    resultsStart.Resize(1, colCount).Value = hdr
+
+    ' Clear old results with dynamic width (show no data rows)
+    ClearOldResults resultsStart, colCount
+    
+    WriteStatus statusRng, "Enter search criteria to display results.", ""
+    Exit Sub
+EH:
+    LogErrorLocal "OutputNoResults", Err.Number, Err.DESCRIPTION
 End Sub
 
 '==============================
@@ -918,6 +978,8 @@ Public Sub Clearfilters()
                 If Not tbl.AutoFilter Is Nothing Then
                     If tbl.AutoFilter.FilterMode Then tbl.AutoFilter.ShowAllData
                 End If
+                ' Refresh results to show no results after clearing all filters and search boxes
+                RefreshResults
                 Exit Sub
             End If
         Next tbl
