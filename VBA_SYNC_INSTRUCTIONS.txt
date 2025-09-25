@@ -1,0 +1,69 @@
+
+VBA MODULE SYNCHRONIZATION INSTRUCTIONS
+=======================================
+Workbook: Search Dashboard v1.1 DevCOPY.xlsm
+Generated: 2025-09-24 19:30:14
+
+AUTOMATIC METHOD (Recommended):
+1. Open Search Dashboard v1.1 DevCOPY.xlsm in Excel
+2. Press Alt+F11 to open VBA Editor
+3. Import the file 'import_vba_modules.bas' (File > Import)
+4. Run the ImportVBAModules macro
+5. Delete the temporary import_vba_modules module when done
+
+MANUAL METHOD:
+1. Open Search Dashboard v1.1 DevCOPY.xlsm in Excel
+2. Press Alt+F11 to open the VBA Editor
+3. For each module/class below:
+   - Right-click in Project Explorer
+   - Choose "Import File..." or "Remove" then "Import File..."
+   - Select the corresponding .bas or .cls file
+
+MODULES TO UPDATE:
+
+- Dashboard.cls (class)
+  Module Name: Dashboard
+  File Size: 1958 bytes
+  Modified: 2025-09-17 05:42:48
+  Path: /home/joshua/Documents/Dashboard_Project/Dashboard.cls
+
+- ThisWorkbook.cls (class)
+  Module Name: ThisWorkbook
+  File Size: 3840 bytes
+  Modified: 2025-09-17 05:42:48
+  Path: /home/joshua/Documents/Dashboard_Project/ThisWorkbook.cls
+
+- export.bas (module)
+  Module Name: export
+  File Size: 2201 bytes
+  Modified: 2025-09-17 05:42:48
+  Path: /home/joshua/Documents/Dashboard_Project/export.bas
+
+- mod_ModeDrivenSearch.bas (module)
+  Module Name: mod_ModeDrivenSearch
+  File Size: 4017 bytes
+  Modified: 2025-09-17 05:42:48
+  Path: /home/joshua/Documents/Dashboard_Project/mod_ModeDrivenSearch.bas
+
+- temp_mod_ConfigTableTools.bas (module)
+  Module Name: temp_mod_ConfigTableTools
+  File Size: 2533 bytes
+  Modified: 2025-09-17 05:42:48
+  Path: /home/joshua/Documents/Dashboard_Project/temp_mod_ConfigTableTools.bas
+
+- mod_PrimaryConsolidatedModule.bas (module)
+  Module Name: mod_PrimaryConsolidatedModule
+  File Size: 44891 bytes
+  Modified: 2025-09-24 19:03:06
+  Path: /home/joshua/Documents/Dashboard_Project/mod_PrimaryConsolidatedModule.bas
+
+IMPORTANT NOTES:
+- A backup has been created in the Old_Code directory
+- Ensure macros are enabled when opening the workbook
+- Save the workbook after importing to preserve changes
+- Test all functionality after import
+
+PROJECT STRUCTURE:
+- VBA files are stored as .bas and .cls in the project root
+- Git tracks these files for version control
+- Use this script whenever VBA files are updated
