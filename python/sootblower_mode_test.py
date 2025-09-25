@@ -3,8 +3,13 @@ Test for Sootblower Location Search Mode
 ========================================
 This script adds and tests a 'Sootblower Location' mode in the mode-driven search engine.
 """
+import sys
+from pathlib import Path
 import pandas as pd
 from mode_search_engine import ModeConfig, ModeDrivenSearchEngine
+
+# Ensure mode_search_engine.py is importable
+sys.path.append(str(Path(__file__).parent))
 
 def sootblower_sample_data():
     return pd.DataFrame([
