@@ -8,6 +8,7 @@
   4. Provide summary of project state and pending work
   5. Report any discrepancies or areas needing attention
 - **"Always" keyword**: If the user includes the word "Always" in an instruction, treat it as a persistent rule and update this instruction file to reflect the concept automatically.
+- **Always push after every change**: Commit and push to remote repository after every file modification, creation, or significant change to maintain continuous backup and synchronization.
 
 ## Project Overview
 This project is a modular, high-performance Excel dashboard for industrial equipment search and display. It uses advanced VBA, dynamic configuration tables, and mode-driven search logic. The architecture is designed for maintainability, scalability, and easy transfer between environments.
