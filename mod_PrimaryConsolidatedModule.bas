@@ -990,8 +990,22 @@ End Sub
 Public Sub ClearSearchBoxes()
     On Error Resume Next
     Dim nm As String
+    ' Clear config-based search boxes
     nm = GetConfigValue("InputCell_DescripSearch"): If Len(nm) > 0 Then ThisWorkbook.Names(nm).RefersToRange.ClearContents
     nm = GetConfigValue("InputCell_ValveNumSearch"): If Len(nm) > 0 Then ThisWorkbook.Names(nm).RefersToRange.ClearContents
+    
+    ' Clear additional search inputs if they exist
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets("SearchResults")
+    If Not ws Is Nothing Then
+        If Not ws.Range("SearchInput") Is Nothing Then ws.Range("SearchInput").ClearContents
+        If Not ws.Range("LocationFilter") Is Nothing Then ws.Range("LocationFilter").ClearContents
+    End If
+    
+    ' Clear any other named search boxes
+    If Not ThisWorkbook.Names("SearchBox") Is Nothing Then ThisWorkbook.Names("SearchBox").RefersToRange.ClearContents
+    If Not ThisWorkbook.Names("ValveNumSearchBox") Is Nothing Then ThisWorkbook.Names("ValveNumSearchBox").RefersToRange.ClearContents
+    
     On Error GoTo 0
 End Sub
 
