@@ -215,20 +215,26 @@ Private Sub FormatAnalysisWorksheet(ws As Worksheet, row As Long)
     
     ' Add borders to data area
     Dim dataRange As Range
-    Set dataRange = ws.Range("A1:G" & row - 4)
+    Dim dataLastRow As Long
+    dataLastRow = row - 4
+    If dataLastRow < 1 Then dataLastRow = 1
+    Set dataRange = ws.Range("A1:G" & dataLastRow)
+    On Error Resume Next
     dataRange.Borders.LineStyle = xlContinuous
     dataRange.Borders.Weight = xlThin
+    On Error GoTo 0
     
     ' Add filter to the table
-    ws.Range("A1:G" & row - 4).AutoFilter
+    On Error Resume Next
+    ws.Range("A1:G" & dataLastRow).AutoFilter
+    On Error GoTo 0
     
     ' Freeze top row
-    ws.Range("A2").Select
-    ActiveWindow.FreezePanes = True
+    FreezeTopRowSafe ws
     
     ' Color-code priorities
     Dim i As Long
-    For i = 2 To row - 4
+    For i = 2 To dataLastRow
         If ws.Cells(i, 5).Value = "HIGH" Then
             ws.Range("A" & i & ":G" & i).Interior.Color = RGB(255, 230, 230) ' Light red
         ElseIf ws.Cells(i, 5).Value = "MEDIUM" Then
@@ -237,8 +243,35 @@ Private Sub FormatAnalysisWorksheet(ws As Worksheet, row As Long)
     Next i
     
     ' Select first cell
-    ws.Range("A1").Select
+    SafeActivateCell ws, "A1"
     
+End Sub
+
+'==== Helpers to avoid Select/Activate errors ====
+Private Sub FreezeTopRowSafe(ws As Worksheet)
+    On Error Resume Next
+    Dim prev As Worksheet
+    Set prev = ActiveSheet
+    ' If there's no active window or sheet is protected, skip freezing
+    If Application.Windows.Count = 0 Then Exit Sub
+    If ws.ProtectContents Then Exit Sub
+    ws.Activate
+    ActiveWindow.FreezePanes = False
+    ws.Cells(2, 1).Activate ' A2
+    ActiveWindow.FreezePanes = True
+    If Not prev Is Nothing Then prev.Activate
+    On Error GoTo 0
+End Sub
+
+Private Sub SafeActivateCell(ws As Worksheet, ByVal addr As String)
+    On Error Resume Next
+    Dim prev As Worksheet
+    Set prev = ActiveSheet
+    If Application.Windows.Count = 0 Then Exit Sub
+    ws.Activate
+    ws.Range(addr).Activate
+    If Not prev Is Nothing Then prev.Activate
+    On Error GoTo 0
 End Sub
 
 Public Sub RefreshAnalysis()
