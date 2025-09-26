@@ -33,10 +33,10 @@ class PythonToVBAConverter:
             '.append()': 'ReDim Preserve arr(UBound(arr) + 1): arr(UBound(arr)) = value'
         }
     
-    def convert_function_signature(self, python_func: str) -> str:
+    def convert_function_signature(self, python_func: str):
         """Convert Python function definition to VBA."""
         # Extract function name and parameters
-        match = re.match(r'def\s+(\w+)\s*\((.*?)\):', python_func)
+        match = self.new_method(python_func)
         if not match:
             return python_func
         
@@ -77,22 +77,25 @@ class PythonToVBAConverter:
             vba_func += ', '.join(vba_params)
         
         vba_func += ") As Variant"
-        return vba_func
+        return vba_func, func_name  # Return function name as well
+
+    def new_method(self, python_func):
+        match = re.match(r'def\s+(\w+)\s*\((.*?)\):', python_func)
+        return match
     
-    def convert_search_logic(self, python_code: str) -> str:
+    def convert_search_logic(self, python_code: str, function_name: str) -> str:
         """Convert Python search logic to VBA equivalent."""
         vba_code = []
         lines = python_code.split('\n')
-        
         indent_level = 0
-        
+
         for line in lines:
             stripped = line.strip()
             if not stripped or stripped.startswith('#'):
                 continue
-            
+
             # Convert common patterns
-            vba_line = self.convert_line(stripped, indent_level)
+            vba_line = self.convert_line(stripped, indent_level, function_name)
             if vba_line:
                 vba_code.append('    ' * indent_level + vba_line)
             
@@ -104,16 +107,17 @@ class PythonToVBAConverter:
         
         return '\n'.join(vba_code)
     
-    def convert_line(self, line: str, indent: int) -> str:
+    def convert_line(self, line: str, indent: int, function_name: str) -> str:
         """Convert individual Python line to VBA."""
         # Function definitions
         if line.startswith('def '):
-            return self.convert_function_signature(line).replace(':', '')
-        
+            vba_func, _ = self.convert_function_signature(line)
+            return vba_func.replace(':', '')
+
         # Return statements
         if line.startswith('return '):
             value = line[7:]
-            return f"Set {self.current_function} = {value}" if 'DataFrame' in value else f"{self.current_function} = {value}"
+            return f"Set {function_name} = {value}" if 'DataFrame' in value else f"{function_name} = {value}"
         
         # If statements
         if line.startswith('if '):
@@ -169,40 +173,39 @@ class PythonToVBAConverter:
         template = '''
 Public Function {function_name}({parameters}) As Variant
     On Error GoTo EH
-    
+
     Dim dataLo As ListObject
     Set dataLo = lo(DATA_TABLE_NAME)
-    
+
     {function_body}
-    
+
     Exit Function
 EH:
     LogErrorLocal "{function_name}", Err.Number, Err.Description
     {function_name} = Array()
 End Function
 '''
-        
+
         # Extract function details
         lines = python_search_function.strip().split('\n')
         first_line = lines[0]
-        
-        # Get function signature
-        vba_signature = self.convert_function_signature(first_line)
+
+        # Get function signature and function name
+        vba_signature, func_name = self.convert_function_signature(first_line)
         match = re.match(r'Public Function (\w+)\((.*?)\)', vba_signature)
         if match:
-            func_name = match.group(1)
             parameters = match.group(2)
-            
+
             # Convert function body
             body_lines = lines[1:]
-            body_code = self.convert_search_logic('\n'.join(body_lines))
-            
+            body_code = self.convert_search_logic('\n'.join(body_lines), func_name)
+
             return template.format(
                 function_name=func_name,
                 parameters=parameters,
                 function_body=body_code
             )
-        
+
         return python_search_function
 
 def demonstrate_conversion():

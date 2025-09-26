@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 
 class EquipmentSearchEngine:
-    def __init__(self, data_file: str = None, config_file: str = None):
+    def __init__(self, data_file: Optional[str] = None, config_file: Optional[str] = None):
         """Initialize the search engine with data and configuration."""
         self.data = pd.DataFrame()
         self.config = {}
