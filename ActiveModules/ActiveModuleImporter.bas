@@ -6,6 +6,7 @@ Option Explicit
 ' Purpose: Maintain an "ActiveModules" folder next to the workbook as the source of truth.
 ' This module provides:
 '   - ReplaceAllModules_FromActiveFolder: Purge non-document modules and import all .bas/.cls from ActiveModules.
+'   - SyncModules_FromActiveFolder: Non-destructive sync; imports/updates modules from ActiveModules without purging.
 '   - ExportModulesToActiveFolder: Export current modules into ActiveModules to seed/sync.
 '
 ' Safe behaviors:
@@ -66,8 +67,10 @@ Public Sub ReplaceAllModules_FromActiveFolder()
 
     For Each vbc In comps
         If vbc.Type <> CT_Document Then
-            ' queue for removal (cannot remove while iterating)
-            toRemove.Add vbc
+            If UCase$(vbc.Name) <> "ACTIVEMODULEIMPORTER" Then
+                ' queue for removal (cannot remove while iterating) — but never remove the running importer
+                toRemove.Add vbc
+            End If
         End If
     Next vbc
 
@@ -81,12 +84,26 @@ Public Sub ReplaceAllModules_FromActiveFolder()
     ' Import all files from ActiveModules
     Dim f As String
     Dim filePath As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
 
     ' First import .bas (modules), then .cls (classes) for stability
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
     Do While Len(f) > 0
         filePath = srcFolder & Application.PathSeparator & f
-        comps.Import filePath
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
+            If ShouldRemoveTarget(f) Then
+                RemoveExistingByFileName f
+            Else
+                If fso.FileExists(filePath) Then
+                    On Error GoTo ImportError
+                    comps.Import filePath
+                    On Error GoTo ErrHandler
+                Else
+                    MsgBox "File not found: " & filePath, vbExclamation, "Import Error"
+                End If
+            End If
+        End If
         f = Dir()
     Loop
 
@@ -97,14 +114,24 @@ Public Sub ReplaceAllModules_FromActiveFolder()
         Dim modName As String
         modName = Left$(f, InStrRev(f, ".") - 1)
 
-        If DocumentModuleExists(modName) Then
+        If ShouldSkipFile(f) Or IsImporterFile(f) Then
+            ' skip
+        ElseIf ShouldRemoveTarget(f) Then
+            RemoveExistingByFileName f ' do not import delete markers
+        ElseIf DocumentModuleExists(modName) Then
             ' Replace code inside the document module
             Dim content As String
             content = ReadFileStrippingAttributes(filePath)
             ReplaceDocumentModuleCode modName, content
         Else
             ' Import as a regular class module
-            comps.Import filePath
+            If fso.FileExists(filePath) Then
+                On Error GoTo ImportError
+                comps.Import filePath
+                On Error GoTo ErrHandler
+            Else
+                MsgBox "File not found: " & filePath, vbExclamation, "Import Error"
+            End If
         End If
 
         f = Dir()
@@ -115,9 +142,102 @@ Public Sub ReplaceAllModules_FromActiveFolder()
            "Backup exported to:" & vbCrLf & exportPath, vbInformation, "Import Complete"
     Exit Sub
 
+ImportError:
+    Application.ScreenUpdating = True
+    MsgBox "Import failed for file: " & f & vbCrLf & _
+           "Path: " & filePath & vbCrLf & _
+           "Error: " & Err.Description & vbCrLf & vbCrLf & _
+           "Check if:" & vbCrLf & _
+           "- File exists and is readable" & vbCrLf & _
+           "- VBA Trust access is enabled" & vbCrLf & _
+           "- File is not corrupted", vbCritical, "Import Failed"
+    Exit Sub
+
 ErrHandler:
     Application.ScreenUpdating = True
     MsgBox "Error replacing modules: " & Err.Description, vbCritical, "Import Failed"
+End Sub
+
+Public Sub SyncModules_FromActiveFolder()
+    ' Non-destructive: import or update modules that exist in ActiveModules
+    On Error GoTo ErrHandler
+
+    If Not HasVBATrustAccess() Then
+        MsgBox "Please enable 'Trust access to the VBA project object model' in Trust Center and try again.", vbExclamation, "VBA Access Required"
+        Exit Sub
+    End If
+
+    Dim srcFolder As String
+    srcFolder = GetActiveModulesFolder()
+    If Len(Dir(srcFolder, vbDirectory)) = 0 Then
+        MkDir srcFolder
+        MsgBox "Created ActiveModules folder here:" & vbCrLf & srcFolder, vbInformation, "ActiveModules Created"
+        Exit Sub
+    End If
+
+    Dim comps As Object
+    Set comps = ThisWorkbook.VBProject.VBComponents
+
+    Dim f As String, filePath As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+
+    ' Import .bas
+    f = Dir(srcFolder & Application.PathSeparator & "*.bas")
+    Do While Len(f) > 0
+        filePath = srcFolder & Application.PathSeparator & f
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
+            If ShouldRemoveTarget(f) Then
+                RemoveExistingByFileName f
+            End If
+            Dim baseName As String
+            baseName = Left$(f, InStrRev(f, ".") - 1)
+            If ModuleExists(baseName) Then RemoveExistingModule baseName
+            If fso.FileExists(filePath) Then
+                On Error GoTo SyncError
+                comps.Import filePath
+                On Error GoTo ErrHandler
+            End If
+        End If
+        f = Dir()
+    Loop
+
+    ' Import .cls
+    f = Dir(srcFolder & Application.PathSeparator & "*.cls")
+    Do While Len(f) > 0
+        filePath = srcFolder & Application.PathSeparator & f
+        Dim modName As String
+        modName = Left$(f, InStrRev(f, ".") - 1)
+
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
+            If ShouldRemoveTarget(f) Then RemoveExistingByFileName f
+            If DocumentModuleExists(modName) Then
+                Dim content As String
+                content = ReadFileStrippingAttributes(filePath)
+                ReplaceDocumentModuleCode modName, content
+            Else
+                If ModuleExists(modName) Then RemoveExistingModule modName
+                If fso.FileExists(filePath) Then
+                    On Error GoTo SyncError
+                    comps.Import filePath
+                    On Error GoTo ErrHandler
+                End If
+            End If
+        End If
+        f = Dir()
+    Loop
+
+    MsgBox "Sync complete from ActiveModules.", vbInformation
+    Exit Sub
+
+SyncError:
+    MsgBox "Sync failed for file: " & f & vbCrLf & _
+           "Path: " & filePath & vbCrLf & _
+           "Error: " & Err.Description, vbCritical, "Sync Failed"
+    Exit Sub
+
+ErrHandler:
+    MsgBox "Error during sync: " & Err.Description, vbCritical
 End Sub
 
 Public Sub ExportModulesToActiveFolder()
@@ -197,6 +317,55 @@ Private Function DocumentModuleExists(ByVal moduleName As String) As Boolean
         DocumentModuleExists = False
     End If
     On Error GoTo 0
+End Function
+
+Private Function ModuleExists(moduleName As String) As Boolean
+    Dim vbc As Object
+    On Error Resume Next
+    Set vbc = ThisWorkbook.VBProject.VBComponents(moduleName)
+    ModuleExists = Not (vbc Is Nothing)
+    On Error GoTo 0
+End Function
+
+Private Sub RemoveExistingModule(moduleName As String)
+    On Error Resume Next
+    If ThisWorkbook.VBProject.VBComponents(moduleName).Type <> CT_Document Then
+        ThisWorkbook.VBProject.VBComponents.Remove ThisWorkbook.VBProject.VBComponents(moduleName)
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub RemoveExistingByFileName(fileName As String)
+    ' If a file is named with markers like [REMOVE]ModuleName.bas, remove ModuleName if present
+    Dim base As String
+    base = Left$(fileName, InStrRev(fileName, ".") - 1)
+    base = NormalizeName(base)
+    If ModuleExists(base) Then RemoveExistingModule base
+End Sub
+
+Private Function ShouldSkipFile(fileName As String) As Boolean
+    Dim n As String: n = UCase$(fileName)
+    ShouldSkipFile = (InStr(n, "[SKIP]") > 0)
+End Function
+
+Private Function ShouldRemoveTarget(fileName As String) As Boolean
+    Dim n As String: n = UCase$(fileName)
+    ShouldRemoveTarget = (InStr(n, "[REMOVE]") > 0) Or (InStr(n, "[OBSOLETE]") > 0)
+End Function
+
+Private Function NormalizeName(ByVal raw As String) As String
+    Dim s As String: s = raw
+    s = Replace$(s, "[REMOVE]", "")
+    s = Replace$(s, "[OBSOLETE]", "")
+    s = Replace$(s, "[SKIP]", "")
+    s = Trim$(s)
+    NormalizeName = s
+End Function
+
+Private Function IsImporterFile(ByVal fileName As String) As Boolean
+    Dim base As String
+    base = NormalizeName(Left$(fileName, InStrRev(fileName, ".") - 1))
+    IsImporterFile = (UCase$(base) = "ACTIVEMODULEIMPORTER")
 End Function
 
 Private Function ReadFileStrippingAttributes(ByVal filePath As String) As String
