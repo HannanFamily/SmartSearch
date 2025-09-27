@@ -6,6 +6,7 @@ Option Explicit
 ' Purpose: Maintain an "ActiveModules" folder next to the workbook as the source of truth.
 ' This module provides:
 '   - ReplaceAllModules_FromActiveFolder: Purge non-document modules and import all .bas/.cls from ActiveModules.
+'   - SyncModules_FromActiveFolder: Non-destructive sync; imports/updates modules from ActiveModules without purging.
 '   - ExportModulesToActiveFolder: Export current modules into ActiveModules to seed/sync.
 '
 ' Safe behaviors:
@@ -86,7 +87,10 @@ Public Sub ReplaceAllModules_FromActiveFolder()
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
     Do While Len(f) > 0
         filePath = srcFolder & Application.PathSeparator & f
-        comps.Import filePath
+        If Not ShouldSkipFile(f) Then
+            If ShouldRemoveTarget(f) Then RemoveExistingByFileName f
+            comps.Import filePath
+        End If
         f = Dir()
     Loop
 
@@ -97,7 +101,12 @@ Public Sub ReplaceAllModules_FromActiveFolder()
         Dim modName As String
         modName = Left$(f, InStrRev(f, ".") - 1)
 
-        If DocumentModuleExists(modName) Then
+        If ShouldSkipFile(f) Then
+            ' skip
+        ElseIf ShouldRemoveTarget(f) Then
+            RemoveExistingByFileName f
+            comps.Import filePath
+        ElseIf DocumentModuleExists(modName) Then
             ' Replace code inside the document module
             Dim content As String
             content = ReadFileStrippingAttributes(filePath)
@@ -118,6 +127,72 @@ Public Sub ReplaceAllModules_FromActiveFolder()
 ErrHandler:
     Application.ScreenUpdating = True
     MsgBox "Error replacing modules: " & Err.Description, vbCritical, "Import Failed"
+End Sub
+
+Public Sub SyncModules_FromActiveFolder()
+    ' Non-destructive: import or update modules that exist in ActiveModules
+    On Error GoTo ErrHandler
+
+    If Not HasVBATrustAccess() Then
+        MsgBox "Please enable 'Trust access to the VBA project object model' in Trust Center and try again.", vbExclamation, "VBA Access Required"
+        Exit Sub
+    End If
+
+    Dim srcFolder As String
+    srcFolder = GetActiveModulesFolder()
+    If Len(Dir(srcFolder, vbDirectory)) = 0 Then
+        MkDir srcFolder
+        MsgBox "Created ActiveModules folder here:" & vbCrLf & srcFolder, vbInformation, "ActiveModules Created"
+        Exit Sub
+    End If
+
+    Dim comps As Object
+    Set comps = ThisWorkbook.VBProject.VBComponents
+
+    Dim f As String, filePath As String
+
+    ' Import .bas
+    f = Dir(srcFolder & Application.PathSeparator & "*.bas")
+    Do While Len(f) > 0
+        filePath = srcFolder & Application.PathSeparator & f
+        If Not ShouldSkipFile(f) Then
+            If ShouldRemoveTarget(f) Then
+                RemoveExistingByFileName f
+            End If
+            Dim baseName As String
+            baseName = Left$(f, InStrRev(f, ".") - 1)
+            If ModuleExists(baseName) Then RemoveExistingModule baseName
+            comps.Import filePath
+        End If
+        f = Dir()
+    Loop
+
+    ' Import .cls
+    f = Dir(srcFolder & Application.PathSeparator & "*.cls")
+    Do While Len(f) > 0
+        filePath = srcFolder & Application.PathSeparator & f
+        Dim modName As String
+        modName = Left$(f, InStrRev(f, ".") - 1)
+
+        If Not ShouldSkipFile(f) Then
+            If ShouldRemoveTarget(f) Then RemoveExistingByFileName f
+            If DocumentModuleExists(modName) Then
+                Dim content As String
+                content = ReadFileStrippingAttributes(filePath)
+                ReplaceDocumentModuleCode modName, content
+            Else
+                If ModuleExists(modName) Then RemoveExistingModule modName
+                comps.Import filePath
+            End If
+        End If
+        f = Dir()
+    Loop
+
+    MsgBox "Sync complete from ActiveModules.", vbInformation
+    Exit Sub
+
+ErrHandler:
+    MsgBox "Error during sync: " & Err.Description, vbCritical
 End Sub
 
 Public Sub ExportModulesToActiveFolder()
@@ -197,6 +272,49 @@ Private Function DocumentModuleExists(ByVal moduleName As String) As Boolean
         DocumentModuleExists = False
     End If
     On Error GoTo 0
+End Function
+
+Private Function ModuleExists(moduleName As String) As Boolean
+    Dim vbc As Object
+    On Error Resume Next
+    Set vbc = ThisWorkbook.VBProject.VBComponents(moduleName)
+    ModuleExists = Not (vbc Is Nothing)
+    On Error GoTo 0
+End Function
+
+Private Sub RemoveExistingModule(moduleName As String)
+    On Error Resume Next
+    If ThisWorkbook.VBProject.VBComponents(moduleName).Type <> CT_Document Then
+        ThisWorkbook.VBProject.VBComponents.Remove ThisWorkbook.VBProject.VBComponents(moduleName)
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub RemoveExistingByFileName(fileName As String)
+    ' If a file is named with markers like [REMOVE]ModuleName.bas, remove ModuleName if present
+    Dim base As String
+    base = Left$(fileName, InStrRev(fileName, ".") - 1)
+    base = NormalizeName(base)
+    If ModuleExists(base) Then RemoveExistingModule base
+End Sub
+
+Private Function ShouldSkipFile(fileName As String) As Boolean
+    Dim n As String: n = UCase$(fileName)
+    ShouldSkipFile = (InStr(n, "[SKIP]") > 0)
+End Function
+
+Private Function ShouldRemoveTarget(fileName As String) As Boolean
+    Dim n As String: n = UCase$(fileName)
+    ShouldRemoveTarget = (InStr(n, "[REMOVE]") > 0) Or (InStr(n, "[OBSOLETE]") > 0)
+End Function
+
+Private Function NormalizeName(ByVal raw As String) As String
+    Dim s As String: s = raw
+    s = Replace$(s, "[REMOVE]", "")
+    s = Replace$(s, "[OBSOLETE]", "")
+    s = Replace$(s, "[SKIP]", "")
+    s = Trim$(s)
+    NormalizeName = s
 End Function
 
 Private Function ReadFileStrippingAttributes(ByVal filePath As String) As String
