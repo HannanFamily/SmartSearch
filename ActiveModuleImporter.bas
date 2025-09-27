@@ -67,8 +67,10 @@ Public Sub ReplaceAllModules_FromActiveFolder()
 
     For Each vbc In comps
         If vbc.Type <> CT_Document Then
-            ' queue for removal (cannot remove while iterating)
-            toRemove.Add vbc
+            If UCase$(vbc.Name) <> "ACTIVEMODULEIMPORTER" Then
+                ' queue for removal (cannot remove while iterating) — but never remove the running importer
+                toRemove.Add vbc
+            End If
         End If
     Next vbc
 
@@ -87,11 +89,17 @@ Public Sub ReplaceAllModules_FromActiveFolder()
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
     Do While Len(f) > 0
         filePath = srcFolder & Application.PathSeparator & f
-        If Not ShouldSkipFile(f) Then
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
             If ShouldRemoveTarget(f) Then
                 RemoveExistingByFileName f
             Else
+                On Error Resume Next
                 comps.Import filePath
+                If Err.Number <> 0 Then
+                    MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
+                    Err.Clear
+                End If
+                On Error GoTo 0
             End If
         End If
         f = Dir()
@@ -104,7 +112,7 @@ Public Sub ReplaceAllModules_FromActiveFolder()
         Dim modName As String
         modName = Left$(f, InStrRev(f, ".") - 1)
 
-        If ShouldSkipFile(f) Then
+        If ShouldSkipFile(f) Or IsImporterFile(f) Then
             ' skip
         ElseIf ShouldRemoveTarget(f) Then
             RemoveExistingByFileName f ' do not import delete markers
@@ -115,7 +123,13 @@ Public Sub ReplaceAllModules_FromActiveFolder()
             ReplaceDocumentModuleCode modName, content
         Else
             ' Import as a regular class module
+            On Error Resume Next
             comps.Import filePath
+            If Err.Number <> 0 Then
+                MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
+                Err.Clear
+            End If
+            On Error GoTo 0
         End If
 
         f = Dir()
@@ -157,14 +171,20 @@ Public Sub SyncModules_FromActiveFolder()
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
     Do While Len(f) > 0
         filePath = srcFolder & Application.PathSeparator & f
-        If Not ShouldSkipFile(f) Then
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
             If ShouldRemoveTarget(f) Then
                 RemoveExistingByFileName f
             End If
             Dim baseName As String
             baseName = Left$(f, InStrRev(f, ".") - 1)
             If ModuleExists(baseName) Then RemoveExistingModule baseName
+            On Error Resume Next
             comps.Import filePath
+            If Err.Number <> 0 Then
+                MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
+                Err.Clear
+            End If
+            On Error GoTo 0
         End If
         f = Dir()
     Loop
@@ -176,7 +196,7 @@ Public Sub SyncModules_FromActiveFolder()
         Dim modName As String
         modName = Left$(f, InStrRev(f, ".") - 1)
 
-        If Not ShouldSkipFile(f) Then
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
             If ShouldRemoveTarget(f) Then RemoveExistingByFileName f
             If DocumentModuleExists(modName) Then
                 Dim content As String
@@ -184,7 +204,13 @@ Public Sub SyncModules_FromActiveFolder()
                 ReplaceDocumentModuleCode modName, content
             Else
                 If ModuleExists(modName) Then RemoveExistingModule modName
+                On Error Resume Next
                 comps.Import filePath
+                If Err.Number <> 0 Then
+                    MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
+                    Err.Clear
+                End If
+                On Error GoTo 0
             End If
         End If
         f = Dir()
@@ -317,6 +343,12 @@ Private Function NormalizeName(ByVal raw As String) As String
     s = Replace$(s, "[SKIP]", "")
     s = Trim$(s)
     NormalizeName = s
+End Function
+
+Private Function IsImporterFile(ByVal fileName As String) As Boolean
+    Dim base As String
+    base = NormalizeName(Left$(fileName, InStrRev(fileName, ".") - 1))
+    IsImporterFile = (UCase$(base) = "ACTIVEMODULEIMPORTER")
 End Function
 
 Private Function ReadFileStrippingAttributes(ByVal filePath As String) As String
