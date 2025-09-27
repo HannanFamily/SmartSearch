@@ -36,6 +36,18 @@ python3 sync_vba_to_excel.py [workbook_name]
 4. **Create detailed instructions** (`VBA_SYNC_INSTRUCTIONS.txt`)
 5. **List all VBA files** found and their status
 
+## New: ActiveModules Workflow (Optional but Handy)
+
+If you prefer a simple drop-in folder that is treated as the source of truth, use the new ActiveModules workflow:
+
+1. Create a folder named `ActiveModules` next to your workbook (same folder). The first run will create it for you.
+2. Put your `.bas` and `.cls` files in `ActiveModules/`.
+3. In Excel, run `ActiveModuleImporter.ReplaceAllModules_FromActiveFolder` to purge non-document modules and import everything from that folder.
+	- Document modules (ThisWorkbook and worksheet code-behind) are not removed; if a matching `.cls` exists (e.g., `ThisWorkbook.cls`), the code content is copied into the document module safely.
+4. To seed the folder from your workbook, run `ActiveModuleImporter.ExportModulesToActiveFolder`.
+
+This gives you a stable “active module folder” where dropping a file with the same module name will replace the in-workbook copy on next import.
+
 ## How to Use
 
 ### Step 1: Run the sync script
