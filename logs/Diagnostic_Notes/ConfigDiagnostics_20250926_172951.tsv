@@ -1,0 +1,42 @@
+Config Key	Config Value	Named Range Exists	Header Exists in DataTable
+ConfigSheet	ConfigSheet	No	No
+DASHBOARD_SHEET	Dashboard	No	No
+DATA_SHEET	Equipment Data	No	No
+DataTable_Custom1	Custom Category 1	No	Yes
+DataTable_CustomSub1	Custom Sub-Category 1	No	Yes
+DataTable_Detail	CustomDetails	No	Yes
+DataTable_DetailTag	DetailTag	No	Yes
+DataTable_EquipDescription	Equipment Description	No	Yes
+DataTable_FullFunc	FullFunc	No	No
+DataTable_FuncCategory	Functional System Category	No	Yes
+DataTable_FuncSubSysCode	FuncSubSysCode	No	Yes
+DataTable_FuncSystem	Functional System	No	Yes
+DataTable_MaintGrp	Maint Group	No	Yes
+DataTable_ObjectType	Object Type	No	Yes
+DataTable_PhysicalLocation	Physical Location	No	Yes
+DataTable_Remove	Remove	No	Yes
+DataTable_SAPID	SAP Equipment ID	No	No
+DataTable_TagID	Tag ID	No	Yes
+DataTable_Type	Type	No	No
+DataTable_Unit	Unit	No	Yes
+DataTable_ValveNumber	Valve Number	No	Yes
+DataTable_WorkArea	Work Area	No	Yes
+EQUIP_CODE_COL_IDX	SAP Equipment ID	No	No
+InputCell_DescripSearch	SearchBox	Yes	No
+InputCell_ValveNumSearch	ValveNumSearchBox	Yes	No
+LOGGING_LEVEL		No	No
+MAPPING_TABLE	tbl_Mapping	No	No
+OBJ_CODE_SHEET	Object Types	No	No
+Out_Column1	SAP ID	No	Yes
+Out_Column2	Equipment Description	No	Yes
+Out_Column3	Tag ID	No	Yes
+Out_Column4	Functional System	No	Yes
+Out_Column5	Physical Location	No	Yes
+Out_Column6	Object Type	No	Yes
+Out_Column7		No	No
+Out_Column8		No	No
+ResultsStartCell	ResultsStartCell	Yes	No
+SEARCH_COL_IDX	Tag ID	No	Yes
+SORT_FIELD_COL_IDX	Equipment Description	No	Yes
+StatusCell	StatusCell	Yes	No
+SYS_CODE_SHEET	Tag ID System Codes	No	No

@@ -1,0 +1,6 @@
+{
+    "chat.todoListTool.writeOnly": true,
+    "inlineChat.enableV2": true,
+    "inlineChat.finishOnType": true,
+    "inlineChat.lineEmptyHint": true
+}

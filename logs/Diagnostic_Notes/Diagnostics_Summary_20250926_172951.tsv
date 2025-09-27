@@ -1,0 +1,29 @@
+Search Diagnostics Summary	
+	
+Workbook Path	\\unraid\systemfiles\allshares\nvmeshare\Dashboard_Project
+Workbook Name	Search Dashboard v1.1 STABLE.xlsm
+	
+Config: InputCell_DescripSearch	SearchBox (exists)
+Config: InputCell_ValveNumSearch	ValveNumSearchBox (exists)
+Config: ResultsStartCell	ResultsStartCell (exists)
+Config: StatusCell	StatusCell (exists)
+	
+Data Table	DataTable on sheet 'Equipment Data'
+Data Table Rows	64011
+Data Table Cols	21
+	
+Visible Row Count	64011
+	
+Description Column Index	8
+	
+Action	Running RunConfigDiagnostics...
+Action	Running DiagnosticTrace_PerformSearch...
+	
+Outputs	
+- ConfigDiagnostics sheet lists your ConfigTable keys, named ranges, and header matches	
+- SearchDiagnostics sheet traces the search flow and regex build	
+	
+Next Steps	If search still returns nothing:
+- Verify the InputCell_DescripSearch and InputCell_ValveNumSearch named ranges point to cells you edit	
+- Ensure ResultsStartCell and StatusCell are valid cells on your dashboard	
+- Confirm the Data Table name matches your configuration and has visible rows	
