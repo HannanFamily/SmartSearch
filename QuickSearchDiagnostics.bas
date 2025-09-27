@@ -92,7 +92,12 @@ Public Sub ExportDiagnosticsToFiles(Optional ByVal silent As Boolean = False)
     On Error GoTo EH
     Dim sep As String: sep = Application.PathSeparator
     Dim outDir As String
-    outDir = ThisWorkbook.Path & sep & "Diagnostic_Notes"
+    If Len(Trim$(ThisWorkbook.Path)) > 0 Then
+        outDir = ThisWorkbook.Path & sep & "Diagnostic_Notes"
+    Else
+        ' Fallback for unsaved workbook: user's Documents
+        outDir = Environ$("USERPROFILE") & sep & "Documents" & sep & "Diagnostic_Notes"
+    End If
     EnsureFolder outDir
 
     Dim ts As String
@@ -105,11 +110,14 @@ Public Sub ExportDiagnosticsToFiles(Optional ByVal silent As Boolean = False)
     exported = exported & ExportSheetTSV("ConfigDiagnostics", outDir & sep & "ConfigDiagnostics_" & ts & ".tsv")
     exported = exported & ExportSheetTSV("SearchDiagnostics", outDir & sep & "SearchDiagnostics_" & ts & ".tsv")
 
+    ' Log result onto Diagnostics_Summary sheet for traceability
+    LogExportResult outDir, exported, ts
+
     If Not silent Then
         If Len(Trim$(exported)) = 0 Then
             MsgBox "No diagnostics sheets found to export.", vbExclamation
         Else
-            MsgBox "Diagnostics exported to Diagnostic_Notes:" & vbCrLf & exported, vbInformation
+            MsgBox "Diagnostics exported to: " & outDir & vbCrLf & exported, vbInformation
         End If
     End If
     Exit Sub
@@ -164,6 +172,21 @@ Private Sub EnsureFolder(ByVal path As String)
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso.FolderExists(path) Then fso.CreateFolder path
+End Sub
+
+Private Sub LogExportResult(ByVal outDir As String, ByVal exported As String, ByVal ts As String)
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets("Diagnostics_Summary")
+    If ws Is Nothing Then Exit Sub
+    Dim r As Long
+    r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 2
+    ws.Cells(r, 1).Value = "Export Log (" & ts & ")"
+    ws.Cells(r, 1).Font.Bold = True
+    ws.Cells(r + 1, 1).Value = "Output Folder:"
+    ws.Cells(r + 1, 2).Value = outDir
+    ws.Cells(r + 2, 1).Value = "Files:"
+    ws.Cells(r + 2, 2).Value = IIf(Len(Trim$(exported)) = 0, "<none>", exported)
 End Sub
 
 Private Function ResolveDataTable() As ListObject
