@@ -82,6 +82,81 @@ EH:
     MsgBox "Diagnostics error: " & Err.Description, vbExclamation
 End Sub
 
+'============================================================
+' Export diagnostics sheets to files we can read here
+'============================================================
+Public Sub ExportDiagnosticsToFiles()
+    On Error GoTo EH
+    Dim outDir As String
+    outDir = ThisWorkbook.Path & Application.PathSeparator & "diagnostics_export"
+    EnsureFolder outDir
+
+    Dim exported As String
+    exported = ""
+
+    exported = exported & ExportSheetTSV("Diagnostics_Summary", outDir & Application.PathSeparator & "Diagnostics_Summary.tsv")
+    exported = exported & ExportSheetTSV("ConfigDiagnostics", outDir & Application.PathSeparator & "ConfigDiagnostics.tsv")
+    exported = exported & ExportSheetTSV("SearchDiagnostics", outDir & Application.PathSeparator & "SearchDiagnostics.tsv")
+
+    If Len(Trim$(exported)) = 0 Then
+        MsgBox "No diagnostics sheets found to export.", vbExclamation
+    Else
+        MsgBox "Diagnostics exported to:" & vbCrLf & exported, vbInformation
+    End If
+    Exit Sub
+EH:
+    MsgBox "Export error: " & Err.Description, vbExclamation
+End Sub
+
+Private Function ExportSheetTSV(ByVal sheetName As String, ByVal filePath As String) As String
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets(sheetName)
+    On Error GoTo 0
+    If ws Is Nothing Then Exit Function
+
+    Dim f As Integer: f = FreeFile
+    Dim ur As Range
+    Set ur = ws.UsedRange
+    If ur Is Nothing Then Exit Function
+
+    Dim r As Long, c As Long
+    Dim lastRow As Long, lastCol As Long
+    lastRow = ur.Row + ur.Rows.Count - 1
+    lastCol = ur.Column + ur.Columns.Count - 1
+
+    On Error Resume Next
+    Open filePath For Output As #f
+    On Error GoTo 0
+    If Err.Number <> 0 Then Exit Function
+
+    For r = ur.Row To lastRow
+        Dim line As String
+        line = ""
+        For c = ur.Column To lastCol
+            Dim v As String
+            v = CStr(ws.Cells(r, c).Value)
+            ' Escape tabs and newlines
+            v = Replace(v, vbTab, " ")
+            v = Replace(v, vbCr, " ")
+            v = Replace(v, vbLf, " ")
+            If c > ur.Column Then line = line & vbTab
+            line = line & v
+        Next c
+        Print #f, line
+    Next r
+    Close #f
+
+    ExportSheetTSV = filePath & vbCrLf
+End Function
+
+Private Sub EnsureFolder(ByVal path As String)
+    On Error Resume Next
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    If Not fso.FolderExists(path) Then fso.CreateFolder path
+End Sub
+
 Private Function ResolveDataTable() As ListObject
     ' Try known names, then pick largest table as fallback
     Dim ws As Worksheet, l As ListObject
