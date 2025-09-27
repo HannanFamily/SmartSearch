@@ -87,21 +87,25 @@ End Sub
 '============================================================
 Public Sub ExportDiagnosticsToFiles()
     On Error GoTo EH
+    Dim sep As String: sep = Application.PathSeparator
     Dim outDir As String
-    outDir = ThisWorkbook.Path & Application.PathSeparator & "diagnostics_export"
+    outDir = ThisWorkbook.Path & sep & "Diagnostic_Notes"
     EnsureFolder outDir
+
+    Dim ts As String
+    ts = Format(Now, "yyyymmdd_hhnnss")
 
     Dim exported As String
     exported = ""
 
-    exported = exported & ExportSheetTSV("Diagnostics_Summary", outDir & Application.PathSeparator & "Diagnostics_Summary.tsv")
-    exported = exported & ExportSheetTSV("ConfigDiagnostics", outDir & Application.PathSeparator & "ConfigDiagnostics.tsv")
-    exported = exported & ExportSheetTSV("SearchDiagnostics", outDir & Application.PathSeparator & "SearchDiagnostics.tsv")
+    exported = exported & ExportSheetTSV("Diagnostics_Summary", outDir & sep & "Diagnostics_Summary_" & ts & ".tsv")
+    exported = exported & ExportSheetTSV("ConfigDiagnostics", outDir & sep & "ConfigDiagnostics_" & ts & ".tsv")
+    exported = exported & ExportSheetTSV("SearchDiagnostics", outDir & sep & "SearchDiagnostics_" & ts & ".tsv")
 
     If Len(Trim$(exported)) = 0 Then
         MsgBox "No diagnostics sheets found to export.", vbExclamation
     Else
-        MsgBox "Diagnostics exported to:" & vbCrLf & exported, vbInformation
+        MsgBox "Diagnostics exported to Diagnostic_Notes:" & vbCrLf & exported, vbInformation
     End If
     Exit Sub
 EH:
