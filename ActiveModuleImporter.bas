@@ -84,6 +84,8 @@ Public Sub ReplaceAllModules_FromActiveFolder()
     ' Import all files from ActiveModules
     Dim f As String
     Dim filePath As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
 
     ' First import .bas (modules), then .cls (classes) for stability
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
@@ -93,13 +95,13 @@ Public Sub ReplaceAllModules_FromActiveFolder()
             If ShouldRemoveTarget(f) Then
                 RemoveExistingByFileName f
             Else
-                On Error Resume Next
-                comps.Import filePath
-                If Err.Number <> 0 Then
-                    MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
-                    Err.Clear
+                If fso.FileExists(filePath) Then
+                    On Error GoTo ImportError
+                    comps.Import filePath
+                    On Error GoTo ErrHandler
+                Else
+                    MsgBox "File not found: " & filePath, vbExclamation, "Import Error"
                 End If
-                On Error GoTo 0
             End If
         End If
         f = Dir()
@@ -123,13 +125,13 @@ Public Sub ReplaceAllModules_FromActiveFolder()
             ReplaceDocumentModuleCode modName, content
         Else
             ' Import as a regular class module
-            On Error Resume Next
-            comps.Import filePath
-            If Err.Number <> 0 Then
-                MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
-                Err.Clear
+            If fso.FileExists(filePath) Then
+                On Error GoTo ImportError
+                comps.Import filePath
+                On Error GoTo ErrHandler
+            Else
+                MsgBox "File not found: " & filePath, vbExclamation, "Import Error"
             End If
-            On Error GoTo 0
         End If
 
         f = Dir()
@@ -138,6 +140,17 @@ Public Sub ReplaceAllModules_FromActiveFolder()
     Application.ScreenUpdating = True
     MsgBox "Modules replaced from ActiveModules successfully." & vbCrLf & _
            "Backup exported to:" & vbCrLf & exportPath, vbInformation, "Import Complete"
+    Exit Sub
+
+ImportError:
+    Application.ScreenUpdating = True
+    MsgBox "Import failed for file: " & f & vbCrLf & _
+           "Path: " & filePath & vbCrLf & _
+           "Error: " & Err.Description & vbCrLf & vbCrLf & _
+           "Check if:" & vbCrLf & _
+           "- File exists and is readable" & vbCrLf & _
+           "- VBA Trust access is enabled" & vbCrLf & _
+           "- File is not corrupted", vbCritical, "Import Failed"
     Exit Sub
 
 ErrHandler:
@@ -166,6 +179,8 @@ Public Sub SyncModules_FromActiveFolder()
     Set comps = ThisWorkbook.VBProject.VBComponents
 
     Dim f As String, filePath As String
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
 
     ' Import .bas
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
@@ -178,13 +193,11 @@ Public Sub SyncModules_FromActiveFolder()
             Dim baseName As String
             baseName = Left$(f, InStrRev(f, ".") - 1)
             If ModuleExists(baseName) Then RemoveExistingModule baseName
-            On Error Resume Next
-            comps.Import filePath
-            If Err.Number <> 0 Then
-                MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
-                Err.Clear
+            If fso.FileExists(filePath) Then
+                On Error GoTo SyncError
+                comps.Import filePath
+                On Error GoTo ErrHandler
             End If
-            On Error GoTo 0
         End If
         f = Dir()
     Loop
@@ -204,19 +217,23 @@ Public Sub SyncModules_FromActiveFolder()
                 ReplaceDocumentModuleCode modName, content
             Else
                 If ModuleExists(modName) Then RemoveExistingModule modName
-                On Error Resume Next
-                comps.Import filePath
-                If Err.Number <> 0 Then
-                    MsgBox "Import failed for: " & filePath & vbCrLf & Err.Description, vbExclamation, "Import Error"
-                    Err.Clear
+                If fso.FileExists(filePath) Then
+                    On Error GoTo SyncError
+                    comps.Import filePath
+                    On Error GoTo ErrHandler
                 End If
-                On Error GoTo 0
             End If
         End If
         f = Dir()
     Loop
 
     MsgBox "Sync complete from ActiveModules.", vbInformation
+    Exit Sub
+
+SyncError:
+    MsgBox "Sync failed for file: " & f & vbCrLf & _
+           "Path: " & filePath & vbCrLf & _
+           "Error: " & Err.Description, vbCritical, "Sync Failed"
     Exit Sub
 
 ErrHandler:
