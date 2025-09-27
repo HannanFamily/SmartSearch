@@ -9,7 +9,7 @@ This project now includes automated tools to synchronize VBA code from `.bas` an
 
 ### 1. Python Script (Cross-platform)
 ```bash
-python3 sync_vba_to_excel.py [workbook_name]
+python3 tools/sync/sync_vba_to_excel.py [workbook_name]
 ```
 - **Best for**: General use, cross-platform compatibility
 - **Dependencies**: Python 3 (built-in libraries only)
@@ -23,7 +23,7 @@ python3 sync_vba_to_excel.py [workbook_name]
 
 ### 3. Bash Script (Linux/macOS)
 ```bash
-./sync_vba_to_excel.sh [workbook_name]
+./tools/sync/sync_vba_to_excel.sh [workbook_name]
 ```
 - **Best for**: Linux/macOS environments
 - **Dependencies**: Bash shell (standard on Linux/macOS)
@@ -47,6 +47,11 @@ If you prefer a simple drop-in folder that is treated as the source of truth, us
 4. To seed the folder from your workbook, run `ActiveModuleImporter.ExportModulesToActiveFolder`.
 
 This gives you a stable “active module folder” where dropping a file with the same module name will replace the in-workbook copy on next import.
+
+### File markers for automation
+- `[SKIP]ModuleName.bas` → Ignored by importer
+- `[REMOVE]ModuleName.bas` or `[OBSOLETE]ModuleName.bas` → Removes existing `ModuleName` from workbook before proceeding
+- Document modules (ThisWorkbook/worksheet code) are never removed; if a matching `.cls` exists, code is replaced inline.
 
 ## How to Use
 
