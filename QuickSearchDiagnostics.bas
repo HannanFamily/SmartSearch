@@ -73,8 +73,11 @@ Public Sub RunQuickSearchDiagnostics()
     Bullet ws, r + 2, "Ensure ResultsStartCell and StatusCell are valid cells on your dashboard":
     Bullet ws, r + 3, "Confirm the Data Table name matches your configuration and has visible rows":
 
+    ' Auto-export diagnostics to timestamped files in Diagnostic_Notes
+    ExportDiagnosticsToFiles True
+
     Application.ScreenUpdating = True
-    MsgBox "Diagnostics complete. See 'Diagnostics_Summary', 'ConfigDiagnostics', and 'SearchDiagnostics' sheets.", vbInformation
+    MsgBox "Diagnostics complete and exported to Diagnostic_Notes. See 'Diagnostics_Summary', 'ConfigDiagnostics', and 'SearchDiagnostics' sheets.", vbInformation
     Exit Sub
 
 EH:
@@ -85,7 +88,7 @@ End Sub
 '============================================================
 ' Export diagnostics sheets to files we can read here
 '============================================================
-Public Sub ExportDiagnosticsToFiles()
+Public Sub ExportDiagnosticsToFiles(Optional ByVal silent As Boolean = False)
     On Error GoTo EH
     Dim sep As String: sep = Application.PathSeparator
     Dim outDir As String
@@ -102,10 +105,12 @@ Public Sub ExportDiagnosticsToFiles()
     exported = exported & ExportSheetTSV("ConfigDiagnostics", outDir & sep & "ConfigDiagnostics_" & ts & ".tsv")
     exported = exported & ExportSheetTSV("SearchDiagnostics", outDir & sep & "SearchDiagnostics_" & ts & ".tsv")
 
-    If Len(Trim$(exported)) = 0 Then
-        MsgBox "No diagnostics sheets found to export.", vbExclamation
-    Else
-        MsgBox "Diagnostics exported to Diagnostic_Notes:" & vbCrLf & exported, vbInformation
+    If Not silent Then
+        If Len(Trim$(exported)) = 0 Then
+            MsgBox "No diagnostics sheets found to export.", vbExclamation
+        Else
+            MsgBox "Diagnostics exported to Diagnostic_Notes:" & vbCrLf & exported, vbInformation
+        End If
     End If
     Exit Sub
 EH:
