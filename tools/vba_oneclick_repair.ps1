@@ -8,6 +8,43 @@ param(
 
 $ErrorActionPreference = "Continue"
 
+# Resolve important paths
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+$ControllerPath = Join-Path $PSScriptRoot "excel_vba_controller.py"
+
+function Get-PythonPath {
+    param([string]$PreferredVersion = "3.12")
+    if ($env:PYTHON_PATH -and (Test-Path $env:PYTHON_PATH)) { return $env:PYTHON_PATH }
+    $local = Join-Path $env:LOCALAPPDATA "Programs\Python"
+    if (Test-Path $local) {
+        $dirs = Get-ChildItem -Path $local -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "Python*" }
+        foreach ($d in $dirs) {
+            $candidate = Join-Path $d.FullName "python.exe"
+            if (Test-Path $candidate) { return $candidate }
+        }
+    }
+    $py = (Get-Command py -ErrorAction SilentlyContinue)
+    if ($py) {
+        try {
+            $resolved = & $py.Path -$PreferredVersion -c "import sys; print(sys.executable)" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $resolved -and (Test-Path $resolved.Trim())) { return $resolved.Trim() }
+        } catch {}
+    }
+    $python = (Get-Command python -ErrorAction SilentlyContinue)
+    if ($python) { return $python.Path }
+    $fallback = "C:\\Python$($PreferredVersion.Replace('.',''))\\python.exe"
+    if (Test-Path $fallback) { return $fallback }
+    throw "Python executable not found. Install Python 3.12+ or set PYTHON_PATH environment variable."
+}
+
+function Resolve-WorkbookPath {
+    param([string]$PathLike)
+    if ([System.IO.Path]::IsPathRooted($PathLike)) { return $PathLike }
+    $candidate = Join-Path $RepoRoot $PathLike
+    if (Test-Path $candidate) { return $candidate }
+    return $PathLike
+}
+
 function New-LogDir {
     $root = Join-Path (Split-Path -Parent $PSScriptRoot) "logs"
     $ocRoot = Join-Path $root "OneClickRuns"
@@ -23,20 +60,38 @@ function Invoke-Controller {
         [string[]]$Args,
         [string]$LogFile
     )
-    $exe = Join-Path $PSScriptRoot "excel_vba.ps1"
-    Write-Host "→ excel_vba.ps1 $($Args -join ' ')" -ForegroundColor Gray
-    $out = & $exe @Args 2>&1
-    if ($out) { $out | Out-File -FilePath $LogFile -Append -Encoding utf8 }
-    return ,$out
+    $pythonPath = Get-PythonPath
+    $cmd = @($pythonPath, $ControllerPath) + $Args
+    Write-Host ("→ controller: {0} {1}" -f $pythonPath, ($Args -join ' ')) -ForegroundColor Gray
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $pythonPath
+    $psi.ArgumentList.Add($ControllerPath) | Out-Null
+    foreach ($a in $Args) { $psi.ArgumentList.Add($a) | Out-Null }
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $stderr = $p.StandardError.ReadToEnd()
+    $p.WaitForExit()
+    if ($stdout) { $stdout | Out-File -FilePath $LogFile -Append -Encoding utf8 }
+    if ($stderr) { ("ERROR: " + $stderr) | Out-File -FilePath $LogFile -Append -Encoding utf8 }
+    $lines = @()
+    if ($stdout) { $lines += $stdout -split "`r?`n" }
+    if ($stderr) { $lines += $stderr -split "`r?`n" }
+    return ,$lines
 }
 
 function Was-Success {
     param([string[]]$Output)
     if (-not $Output) { return $false }
     # Heuristics indicating success
-    return ($Output -match "Macro completed successfully").Length -gt 0 -or \
-           ($Output -match "Macro result:").Length -gt 0 -or \
-           ($Output -match "VBA Modules:").Length -gt 0
+    return (
+        ($Output -match "\[SUCCESS\] Macro completed successfully").Length -gt 0 -or
+        ($Output -match "Macro result:").Length -gt 0 -or
+        ($Output -match "VBA Modules:").Length -gt 0 -or
+        ($Output -match "Opened workbook:").Length -gt 0
+    )
 }
 
 function Try-Macros {
@@ -48,10 +103,11 @@ function Try-Macros {
     $stepLog = Join-Path $LogDir ("${Title}.log")
     Write-Host ("=== {0} ===" -f $Title) -ForegroundColor Cyan
     $visibilityArgs = @()
-    if ($Hidden) { $visibilityArgs += "-Hidden" } elseif ($Visible) { $visibilityArgs += "-Visible" } else { $visibilityArgs += "-Visible" }
+    if ($Hidden) { $visibilityArgs += "--hidden" } elseif ($Visible) { $visibilityArgs += "--visible" } else { $visibilityArgs += "--visible" }
     foreach ($m in $MacroNames) {
         Write-Host ("Trying macro: {0}" -f $m) -ForegroundColor Yellow
-        $args = @("-Workbook", $Workbook, "-RunMacro", $m) + $visibilityArgs
+        $wk = Resolve-WorkbookPath -PathLike $Workbook
+        $args = @("--workbook", $wk, "--run-macro", $m) + $visibilityArgs
         $out = Invoke-Controller -Args $args -LogFile $stepLog
         if (Was-Success -Output $out) {
             Write-Host ("SUCCESS: {0}" -f $m) -ForegroundColor Green
@@ -70,8 +126,9 @@ function OneClick-Run {
 
     # 0) Show workbook info and modules
     $infoLog = Join-Path $logDir "00_Info.log"
-    Invoke-Controller -Args @("-Workbook", $Workbook, "-ShowInfo", "-Visible") -LogFile $infoLog | Out-Null
-    Invoke-Controller -Args @("-Workbook", $Workbook, "-ListModules", "-Visible") -LogFile $infoLog | Out-Null
+    $wk = Resolve-WorkbookPath -PathLike $Workbook
+    Invoke-Controller -Args @("--workbook", $wk, "--show-info", "--visible", "--debug") -LogFile $infoLog | Out-Null
+    Invoke-Controller -Args @("--workbook", $wk, "--list-modules", "--visible", "--debug") -LogFile $infoLog | Out-Null
 
     # 1) Sync modules (non-destructive)
     Try-Macros -Title "01_SyncModules" -MacroNames @(

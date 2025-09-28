@@ -34,27 +34,48 @@ except ImportError:
 class ExcelVBAController:
     """Controller for Excel VBA operations via COM automation"""
     
-    def __init__(self, workbook_path: Optional[str] = None, visible: bool = True):
+    def __init__(self, workbook_path: Optional[str] = None, visible: bool = True, debug: bool = False):
         self.app = None
         self.workbook = None
         self.workbook_path = workbook_path
         self.visible = visible
         self._connected = False
+        self.debug = debug
         
     def connect(self) -> bool:
         """Connect to Excel application"""
         try:
+            # Ensure COM initialized for this thread
+            try:
+                pythoncom.CoInitialize()
+            except Exception:
+                pass
             # Try to connect to existing Excel instance
             try:
                 self.app = win32com.client.GetActiveObject("Excel.Application")
-                print("Connected to existing Excel instance")
+                if self.debug:
+                    print("Connected to existing Excel instance")
             except:
                 # Create new Excel instance
                 self.app = win32com.client.Dispatch("Excel.Application")
-                print("Created new Excel instance")
+                if self.debug:
+                    print("Created new Excel instance")
+            # Attempt to lower automation security so macros can run when opening
+            try:
+                # 1=Low, 2=ByUI, 3=ForceDisable
+                self.app.AutomationSecurity = 1
+                if self.debug:
+                    print("Set AutomationSecurity=Low for this session")
+            except Exception as se:
+                if self.debug:
+                    print(f"WARN: Could not set AutomationSecurity: {se}")
             
             self.app.Visible = self.visible
             self.app.DisplayAlerts = False
+            try:
+                self.app.EnableEvents = True
+            except Exception:
+                pass
             
             # Open workbook if specified
             if self.workbook_path:
@@ -69,9 +90,11 @@ class ExcelVBAController:
                 # Try to use active workbook
                 try:
                     self.workbook = self.app.ActiveWorkbook
-                    print(f"Using active workbook: {self.workbook.Name}")
+                    if self.debug:
+                        print(f"Using active workbook: {self.workbook.Name}")
                 except:
-                    print("No active workbook found")
+                    if self.debug:
+                        print("No active workbook found")
                     
             self._connected = True
             return True
@@ -89,9 +112,14 @@ class ExcelVBAController:
                 self.app = None
                 self.workbook = None
                 self._connected = False
-                print("Disconnected from Excel")
+                if self.debug:
+                    print("Disconnected from Excel")
             except:
                 pass
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
     
     def run_macro(self, macro_name: str, *args) -> Any:
         """Run a VBA macro/procedure"""
@@ -122,11 +150,11 @@ class ExcelVBAController:
                     result = self.app.Run(attempt, *args)
                 else:
                     result = self.app.Run(attempt)
-                print("Macro completed successfully")
+                print("[SUCCESS] Macro completed successfully")
                 return result
             except Exception as e:
                 last_err = e
-                print(f"Attempt failed for {attempt}: {e}")
+                print(f"[ERROR] Attempt failed for {attempt}: {e}")
 
         print(f"ERROR running macro {macro_name}: {last_err}")
         return None
@@ -343,6 +371,7 @@ def main():
     parser.add_argument("--interactive", "-i", action="store_true", help="Interactive mode")
     parser.add_argument("--list-modules", action="store_true", help="List VBA modules")
     parser.add_argument("--show-info", action="store_true", help="Show workbook info")
+    parser.add_argument("--debug", action="store_true", help="Verbose debug output")
     
     args = parser.parse_args()
     
@@ -350,7 +379,7 @@ def main():
     visible = args.visible and not args.hidden
     
     # Create controller
-    controller = ExcelVBAController(args.workbook, visible=visible)
+    controller = ExcelVBAController(args.workbook, visible=visible, debug=args.debug)
     
     try:
         # Connect to Excel
