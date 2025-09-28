@@ -13,7 +13,7 @@ Option Explicit
 ' - Iterates DataTable rows and updates in-place when values differ
 ' - Writes a small log sheet with counts and timestamp
 '
-Private Const OUTPUT_SUBFOLDER As String = "Data_Cleanup" & Application.PathSeparator & "output"
+Private Const OUTPUT_SUBFOLDER As String = "Data_Cleanup\output"
 Private Const CLEANED_PREFIX As String = "Equipment_Data_CLEANED_"
 Private Const SUGG_PREFIX As String = "Equipment_Data_Cleanup_Suggestions_"
 
