@@ -1,0 +1,14 @@
+# manifest.txt — whitelist of modules to import from ActiveModules
+# Lines can be filenames (.bas/.cls/.frm) or basenames without extension.
+# Comment lines start with '#'.
+
+mod_PrimaryConsolidatedModule.bas
+mod_ModeDrivenSearch.bas
+mod_SootblowerLocator.bas
+SootblowerFormCreator.bas
+C_SSB_FormEvents.cls
+DataTableUpdater.bas
+Dev_ControlCenter.bas
+Dev_SmokeTests.bas
+Dev_Exports.bas
+ActiveModuleImporter.bas

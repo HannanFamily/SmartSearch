@@ -81,7 +81,8 @@ Public Sub ReplaceAllModules_FromActiveFolder()
         On Error GoTo 0
     Next item
 
-    ' Import all files from ActiveModules
+    ' Import all files from ActiveModules (optionally filtered by manifest.txt)
+    Dim manifest As Object: Set manifest = ReadManifest(srcFolder)
     Dim f As String
     Dim filePath As String
     Dim fso As Object
@@ -91,7 +92,7 @@ Public Sub ReplaceAllModules_FromActiveFolder()
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
     Do While Len(f) > 0
         filePath = srcFolder & Application.PathSeparator & f
-        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) And AllowedByManifest(manifest, f) Then
             If ShouldRemoveTarget(f) Then
                 RemoveExistingByFileName f
             Else
@@ -123,7 +124,7 @@ Public Sub ReplaceAllModules_FromActiveFolder()
             Dim content As String
             content = ReadFileStrippingAttributes(filePath)
             ReplaceDocumentModuleCode modName, content
-        Else
+        ElseIf AllowedByManifest(manifest, f) Then
             ' Import as a regular class module
             If fso.FileExists(filePath) Then
                 On Error GoTo ImportError
@@ -182,11 +183,12 @@ Public Sub SyncModules_FromActiveFolder()
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
 
-    ' Import .bas
+    ' Import .bas (optional manifest)
+    Dim manifest As Object: Set manifest = ReadManifest(srcFolder)
     f = Dir(srcFolder & Application.PathSeparator & "*.bas")
     Do While Len(f) > 0
         filePath = srcFolder & Application.PathSeparator & f
-        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) And AllowedByManifest(manifest, f) Then
             If ShouldRemoveTarget(f) Then
                 RemoveExistingByFileName f
             End If
@@ -202,14 +204,14 @@ Public Sub SyncModules_FromActiveFolder()
         f = Dir()
     Loop
 
-    ' Import .cls
+    ' Import .cls (optional manifest)
     f = Dir(srcFolder & Application.PathSeparator & "*.cls")
     Do While Len(f) > 0
         filePath = srcFolder & Application.PathSeparator & f
         Dim modName As String
         modName = Left$(f, InStrRev(f, ".") - 1)
 
-        If Not ShouldSkipFile(f) And Not IsImporterFile(f) Then
+        If Not ShouldSkipFile(f) And Not IsImporterFile(f) And AllowedByManifest(manifest, f) Then
             If ShouldRemoveTarget(f) Then RemoveExistingByFileName f
             If DocumentModuleExists(modName) Then
                 Dim content As String
@@ -399,3 +401,30 @@ Private Sub ReplaceDocumentModuleCode(ByVal moduleName As String, ByVal newConte
 ErrHandler:
     MsgBox "Failed to replace code in document module '" & moduleName & "': " & Err.Description, vbExclamation, "Replace Failed"
 End Sub
+
+Private Function ReadManifest(ByVal folder As String) As Object
+    ' Read optional ActiveModules/manifest.txt, lines are filenames or basenames to include.
+    On Error Resume Next
+    Dim p As String: p = folder & Application.PathSeparator & "manifest.txt"
+    If Dir(p) = "" Then Exit Function
+    Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+    dict.CompareMode = vbTextCompare
+    Dim f As Integer: f = FreeFile
+    Dim line As String
+    Open p For Input As #f
+    Do While Not EOF(f)
+        Line Input #f, line
+        line = Trim$(line)
+        If Len(line) > 0 Then
+            If Left$(line, 1) <> "#" Then dict(line) = True
+        End If
+    Loop
+    Close #f
+    Set ReadManifest = dict
+End Function
+
+Private Function AllowedByManifest(ByVal manifest As Object, ByVal fileName As String) As Boolean
+    If manifest Is Nothing Then AllowedByManifest = True: Exit Function
+    Dim base As String: base = Left$(fileName, InStrRev(fileName, ".") - 1)
+    AllowedByManifest = manifest.Exists(fileName) Or manifest.Exists(base)
+End Function

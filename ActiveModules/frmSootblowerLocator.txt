@@ -1,0 +1,175 @@
+Attribute VB_Name = "frmSootblowerLocator"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Explicit
+
+' Form controls that need to be created:
+' - txtNumber: TextBox for sootblower number input
+' - optAll/optRetracts/optWall: Radio buttons for filtering
+' - lblStatus: Status label
+' - lblResults: Results message label
+' - lblCount: Results count label
+' - cmdSearch: Search button
+' - cmdShowAll: Show All button
+' - cmdAssociated: Show Associated button
+' - cmdClose: Close button
+
+' When creating this form in the VBA editor:
+' 1. Insert a new UserForm named "frmSootblowerLocator"
+' 2. Add all the controls mentioned above
+' 3. Copy the code below into the form's code module
+' 4. Set form properties: Caption = "Sootblower Locator", StartUpPosition = 1 (CenterOwner)
+
+' FORM LAYOUT INSTRUCTIONS:
+' Create the form with the following dimensions and control layout:
+'
+' Form size: Width = 400, Height = 440
+'
+' HEADER SECTION (Top)
+' - Add Label "Sootblower Locator" (Bold, 14pt)
+' - Add Label for instructions "Locate sootblowers by number, type or group"
+'
+' INPUT SECTION
+' - Add Label "Sootblower Number:"
+' - Add TextBox named "txtNumber" (80 pixels wide)
+' - Add Label "(Leave empty to show all sootblowers)"
+'
+' FILTER SECTION (Middle)
+' - Add Frame "Filter by Group"
+' - Add 3 Option Buttons:
+'   - optAll: "All Types" (default selected)
+'   - optRetracts: "Retracts (IK/EL)"
+'   - optWall: "Wall (IR/WB)"
+' - Add help text "Retracts: SBIK, SBEL types | Wall: SBIR, SBWB types"
+'
+' BUTTON SECTION
+' - Add 4 CommandButtons:
+'   - cmdSearch: "Search"
+'   - cmdShowAll: "Show All"
+'   - cmdAssociated: "Show Associated" (initially disabled)
+'   - cmdClose: "Close"
+'
+' RESULTS SECTION (Bottom)
+' - Add Frame "Search Results"
+' - Add Label "lblResults": "Enter search criteria and click Search"
+' - Add Label "lblCount": "Results: 0"
+' - Add Label "Results are displayed on the Dashboard"
+'
+' STATUS BAR (Very Bottom)
+' - Add Label "lblStatus": "Ready"
+
+Private Sub UserForm_Initialize()
+    ' Initialize form with default values
+    lblStatus.Caption = "Ready"
+    optAll.Value = True
+    txtNumber.SetFocus
+    
+    ' Start with Associated button disabled until results are found
+    cmdAssociated.Enabled = False
+End Sub
+
+Private Sub cmdSearch_Click()
+    ' Execute search with current parameters
+    Dim numberText As String, groupSel As String
+    
+    numberText = Trim(txtNumber.Value)
+    
+    ' Get selected group filter
+    If optAll.Value Then
+        groupSel = ""
+    ElseIf optRetracts.Value Then
+        groupSel = "Retracts"
+    ElseIf optWall.Value Then
+        groupSel = "Wall"
+    End If
+    
+    ' Update status
+    lblStatus.Caption = "Searching..."
+    lblResults.Caption = "Searching for sootblowers..."
+    Me.Repaint
+    
+    ' Call search function in main module
+    On Error Resume Next
+    Call mod_SootblowerLocator.SB_ExecuteSearch(numberText, groupSel)
+    
+    If Err.Number <> 0 Then
+        lblStatus.Caption = "Error: " & Err.Description
+        MsgBox "Search failed: " & Err.Description, vbExclamation, "Search Error"
+        Err.Clear
+    End If
+End Sub
+
+Private Sub cmdShowAll_Click()
+    ' Show all sootblowers matching the selected filter
+    Dim groupSel As String
+    
+    ' Get selected group filter
+    If optAll.Value Then
+        groupSel = ""
+    ElseIf optRetracts.Value Then
+        groupSel = "Retracts"
+    ElseIf optWall.Value Then
+        groupSel = "Wall"
+    End If
+    
+    ' Update status
+    lblStatus.Caption = "Loading all sootblowers..."
+    lblResults.Caption = "Retrieving all matching sootblowers..."
+    Me.Repaint
+    
+    ' Call show all function
+    On Error Resume Next
+    Call mod_SootblowerLocator.SB_DisplayAll(groupSel)
+    
+    If Err.Number <> 0 Then
+        lblStatus.Caption = "Error: " & Err.Description
+        MsgBox "Show All failed: " & Err.Description, vbExclamation, "Search Error"
+        Err.Clear
+    End If
+End Sub
+
+Private Sub cmdAssociated_Click()
+    ' Show equipment associated with current results
+    lblStatus.Caption = "Showing associated sootblowers..."
+    lblResults.Caption = "Finding associated equipment..."
+    Me.Repaint
+    
+    ' Call associated function
+    On Error Resume Next
+    Call mod_SootblowerLocator.SB_ShowAssociated
+    
+    If Err.Number <> 0 Then
+        lblStatus.Caption = "Error: " & Err.Description
+        MsgBox "Show Associated failed: " & Err.Description, vbExclamation, "Search Error"
+        Err.Clear
+    End If
+End Sub
+
+Private Sub cmdClose_Click()
+    ' Close form
+    Unload Me
+End Sub
+
+Private Sub txtNumber_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
+    ' Allow only digits and control characters (backspace, enter)
+    If Not (KeyAscii >= 48 And KeyAscii <= 57) And KeyAscii <> 8 And KeyAscii <> 13 Then
+        KeyAscii = 0
+    End If
+End Sub
+
+Public Sub UpdateResultsCount(ByVal count As Long)
+    ' Update the results count and status
+    lblCount.Caption = "Results: " & count
+    
+    If count > 0 Then
+        cmdAssociated.Enabled = True
+        lblResults.Caption = "Found " & count & " matching sootblowers"
+    Else
+        cmdAssociated.Enabled = False
+        lblResults.Caption = "No matching sootblowers found"
+    End If
+    
+    lblStatus.Caption = "Ready"
+End Sub

@@ -1,1 +1,18 @@
-~.xlsm
+# Excel temporary lock files
+~$*
+~$*.xlsm
+~$*.xlsx
+~$*.xlsb
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+*.swp
+*.swo
