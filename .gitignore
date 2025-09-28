@@ -1,4 +1,34 @@
-# Excel temporary lock files
+# Excel and OS junk
+~$*.xls*
+*.tmp
+*.bak
+Thumbs.db
+Desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+.env/
+.venv/
+
+# Logs and diagnostics
+logs/**
+!logs/.gitkeep
+
+# Data cleanup outputs
+Data_Cleanup/output/**
+
+# Exports and snapshots
+Old_Code/ExportedModules_*/
+
+# Local tools and installers
+Rubberduck.Setup.*.exe
+
+# VS Code
+.vscode/
+
+# Cache
+.cache/# Excel temporary lock files
 ~$*
 ~$*.xlsm
 ~$*.xlsx

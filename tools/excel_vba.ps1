@@ -12,11 +12,42 @@ param(
     [switch]$ListModules,
     [switch]$ShowInfo,
     [switch]$Hidden,
+    [switch]$Visible,
     [switch]$Help
 )
 
 # Set up environment
-$pythonPath = "C:\Users\joshu\AppData\Local\Programs\Python\Python312\python.exe"
+function Get-PythonPath {
+    param([string]$PreferredVersion = "3.12")
+    # 1) Respect env override
+    if ($env:PYTHON_PATH -and (Test-Path $env:PYTHON_PATH)) { return $env:PYTHON_PATH }
+    # 2) Common per-user install path
+    $local = Join-Path $env:LOCALAPPDATA "Programs\Python"
+    if (Test-Path $local) {
+        $dirs = Get-ChildItem -Path $local -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "Python*" }
+        foreach ($d in $dirs) {
+            $candidate = Join-Path $d.FullName "python.exe"
+            if (Test-Path $candidate) { return $candidate }
+        }
+    }
+    # 3) py launcher
+    $py = (Get-Command py -ErrorAction SilentlyContinue)
+    if ($py) {
+        try {
+            $resolved = & $py.Path -$PreferredVersion -c "import sys; print(sys.executable)" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $resolved -and (Test-Path $resolved.Trim())) { return $resolved.Trim() }
+        } catch {}
+    }
+    # 4) python on PATH
+    $python = (Get-Command python -ErrorAction SilentlyContinue)
+    if ($python) { return $python.Path }
+    # 5) Fallback to typical system install
+    $fallback = "C:\\Python$($PreferredVersion.Replace('.',''))\\python.exe"
+    if (Test-Path $fallback) { return $fallback }
+    throw "Python executable not found. Install Python 3.12+ or set PYTHON_PATH environment variable."
+}
+
+$pythonPath = Get-PythonPath
 $scriptPath = Join-Path $PSScriptRoot "excel_vba_controller.py"
 
 # Default to current workbook
@@ -41,6 +72,7 @@ if ($Help) {
     Write-Host "  -ListModules               List VBA modules"
     Write-Host "  -ShowInfo                  Show workbook information"
     Write-Host "  -Hidden                    Keep Excel hidden"
+    Write-Host "  -Visible                   Force Excel visible (default)"
     Write-Host "  -Help                      Show this help"
     Write-Host ""
     Write-Host "Examples:"
@@ -58,9 +90,8 @@ $args = @()
 $args += "--workbook"
 $args += "`"$Workbook`""
 
-if ($Hidden) {
-    $args += "--hidden"
-}
+if ($Hidden) { $args += "--hidden" }
+if ($Visible) { $args += "--visible" }
 
 if ($RunMacro) {
     $args += "--run-macro"
