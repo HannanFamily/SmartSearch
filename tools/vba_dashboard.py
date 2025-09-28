@@ -10,14 +10,16 @@ import sys
 import subprocess
 from pathlib import Path
 
-# Configuration
-PYTHON_PATH = r"C:\Users\joshu\AppData\Local\Programs\Python\Python312\python.exe"
-CONTROLLER_PATH = r"tools\excel_vba_controller.py"
-WORKBOOK = "Search Dashboard v1.3.xlsm"
+# Configuration (dynamic)
+# Prefer explicit env override, else current interpreter
+PYTHON_PATH = os.environ.get("PYTHON_PATH", sys.executable)
+BASE_DIR = Path(__file__).parent
+CONTROLLER_PATH = str((BASE_DIR / "excel_vba_controller.py").resolve())
+WORKBOOK = str((BASE_DIR.parent / "Search Dashboard v1.3.xlsm").resolve())
 
 class VBADashboard:
     def __init__(self):
-        self.base_path = Path(__file__).parent
+    self.base_path = BASE_DIR
         
     def run_command(self, args):
         """Run Excel VBA controller with given arguments"""

@@ -99,17 +99,37 @@ class ExcelVBAController:
             print("ERROR: Not connected to Excel")
             return None
             
-        try:
-            print(f"Running macro: {macro_name}")
-            if args:
-                result = self.app.Run(macro_name, *args)
-            else:
-                result = self.app.Run(macro_name)
-            print(f"Macro completed successfully")
-            return result
-        except Exception as e:
-            print(f"ERROR running macro {macro_name}: {e}")
+        # Try macro as-is, then try workbook-qualified variant: 'WorkbookName'!Macro
+        attempts = []
+        macro_trim = (macro_name or "").strip()
+        if not macro_trim:
+            print("ERROR: Macro name is empty")
             return None
+
+        attempts.append(macro_trim)
+        try:
+            wb_name = self.workbook.Name if self.workbook else None
+        except Exception:
+            wb_name = None
+        if wb_name and "!" not in macro_trim:
+            attempts.append(f"'{wb_name}'!{macro_trim}")
+
+        last_err = None
+        for attempt in attempts:
+            try:
+                print(f"Running macro: {attempt}")
+                if args:
+                    result = self.app.Run(attempt, *args)
+                else:
+                    result = self.app.Run(attempt)
+                print("Macro completed successfully")
+                return result
+            except Exception as e:
+                last_err = e
+                print(f"Attempt failed for {attempt}: {e}")
+
+        print(f"ERROR running macro {macro_name}: {last_err}")
+        return None
     
     def get_range_value(self, range_address: str, sheet_name: Optional[str] = None) -> Any:
         """Get value from Excel range"""
