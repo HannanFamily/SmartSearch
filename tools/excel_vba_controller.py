@@ -353,6 +353,15 @@ def main():
             success = controller.set_range_value(range_addr, value)
             print(f"Set range {range_addr}: {'Success' if success else 'Failed'}")
             
+        if args.get_name:
+            value = controller.get_named_range_value(args.get_name)
+            print(f"Named range {args.get_name}: {value}")
+            
+        if args.set_name:
+            name, value = args.set_name
+            success = controller.set_named_range_value(name, value)
+            print(f"Set named range {name}: {'Success' if success else 'Failed'}")
+            
         if args.list_modules:
             modules = controller.list_modules()
             print("VBA Modules:")

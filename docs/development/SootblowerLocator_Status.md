@@ -1,7 +1,7 @@
-# Project Status Summary - September 27, 2025
+# Project Status Summary - September 28, 2025
 
 ## Current Status
-We're implementing the Sootblower Locator functionality with a UserForm interface. We've created the necessary files and modules but need to troubleshoot them to ensure they work correctly.
+Sootblower Locator form and logic are implemented with reliable event binding. Design-time form is preferred, with a dynamic fallback if needed.
 
 ## Recent Implementations
 
@@ -15,16 +15,17 @@ We're implementing the Sootblower Locator functionality with a UserForm interfac
      - Status indicators and results display
 
 2. **Form Creation System**
-   - Created `SootblowerFormCreator.bas` module for dynamic form creation at runtime
-   - Implemented multi-level form instantiation approach:
-     1. First tries standard form from .frm file
-     2. Then tries dynamic creation via SootblowerFormCreator
-     3. Falls back to simple dialog box if neither works
+    - `SootblowerFormCreator.bas` builds a runtime form and wires events
+    - Multi-level instantiation approach:
+       1. Prefer design-time form (`frmSootblowerLocator`)
+       2. Fallback to dynamic creator via `SootblowerFormCreator`
+       3. Final fallback: simple MsgBox
 
 3. **Module Updates**
-   - Added `EnsureSootblowerForm` function to mod_SootblowerLocator.bas
-   - Updated form display logic in Init_SootblowerLocator
-   - Enhanced error handling and diagnostic logging throughout
+   - `EnsureSootblowerForm` in `mod_SootblowerLocator.bas`
+   - Converted single-line ElseIf to multi-line If/ElseIf blocks (VBE parser fix)
+   - `C_SSB_FormEvents` class ensures WithEvents handlers persist and fire reliably
+   - Diagnostics enhanced throughout
 
 4. **Documentation**
    - Added comprehensive form documentation in `docs/SootblowerLocatorForm.md`
@@ -32,30 +33,13 @@ We're implementing the Sootblower Locator functionality with a UserForm interfac
 
 ## Next Steps
 
-1. **Troubleshooting**
-   - Test the form creation and display in Excel
-   - Verify form functionality and integration with search logic
-   - Debug any issues with dynamic form creation or event handling
-
-2. **Integration Testing**
-   - Test full workflow from search input to results display
-   - Verify all filter options work correctly
-   - Test associated equipment functionality
-
-3. **Optimization**
-   - Review and optimize form code
-   - Ensure proper error handling throughout
-   - Finalize diagnostic logging
-
-4. **Documentation**
-   - Update any documentation based on testing results
-   - Add screenshots of the working form to documentation
+1. Validate on Dashboard: final smoke test and basic SSB searches
+2. Optional polish: layout tweaks and status text
+3. Document custom ModeConfig entry and any special columns
+4. Add a screenshot into `docs/image/SootblowerLocatorForm/` (done) and link here
 
 ## Current Issues
-- Need to verify if the form loads properly within Excel
-- Need to test event handling between form and search module
-- Need to confirm the dynamic form creation works as a fallback
-- May need adjustments to form styling or control positioning
+- No known blocking issues; report any edge-case UI regressions
 
 ## Module Relationships
 - `mod_SootblowerLocator.bas` - Main logic module that calls and integrates with the form

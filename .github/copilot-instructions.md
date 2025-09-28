@@ -45,13 +45,15 @@
 
 ## Integration boundaries
 - Excel only at runtime: no external services; logic is in VBA + workbook tables/names. Python files in `python/` are prototypes/utilities and not required for Excel execution.
-- Workbooks: primary is `Search Dashboard v1.2 STABLE.xlsm` (see `Old_Code/` for prior versions/backups).
-
-## Concrete examples
-- Add a mode: insert ModeConfigTable row (ModeName = "Sootblower Location"), set FilterFormula using [@Column] tokens and OutputColumns; set `CustomHandler = Init_SootblowerLocator`; then run `OutputModeResults`.
-- Tune search output: set `Out_Column1..8` in ConfigTable (e.g., "Tag ID", "Equipment Description"); refresh.
-- Respect empty inputs: use `Safe_PerformSearch`/`Safe_OutputAllVisible` entrypoints; they guard against showing all rows by default.
+ Workbooks: primary workbook is `Search Dashboard v1.3.xlsm` (older versions live under `Old_Code/`).
+  - Replace all from folder: `ReplaceAllModules_FromActiveFolder`
+  - Non-destructive sync: `SyncModules_FromActiveFolder` (honors optional `ActiveModules/manifest.txt` whitelist)
+  - Export current to folder: `ExportModulesToActiveFolder`
+  - Generate module catalog: `RUN_GenerateModuleCatalog` (see `Dev_ModuleCatalog`)
 - Bind any plain UserForm at runtime (no VBIDE): create a basic form with a textbox, three option buttons, and four buttons; optionally Tag controls with roles like `role:sb_number`, `role:opt_all`, `role:btn_search`; then run `SSB_BindAndShow "UserForm1"` to wire events via `mod_SSB_RuntimeBinder`.
-
+## Exports and snapshots
+ - Use `RUN_Test_And_Export` to run a smoke test and export DataTable/Config/ModeConfig CSVs, VBA modules, and env info to `logs/Project_Export_YYYYMMDD_HHMMSS/`.
+ - `RUN_Export_ProjectSnapshot` runs only the export.
+ - Optional: `RUN_Dev_AddDashboardButtons` adds buttons for these on the Dashboard sheet.
 ---
 If anything here is ambiguous or missing for your task, ask to refine this file and we’ll update it immediately.
