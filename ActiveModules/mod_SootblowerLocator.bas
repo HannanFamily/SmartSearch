@@ -117,7 +117,13 @@ fallback:
     End If
     
     resp = MsgBox("Limit by group? Yes = IK/EL Retracts, No = IR/WB Wall Blower, Cancel = both.", vbYesNoCancel + vbQuestion, "Group Filter")
-    If resp = vbYes Then grp = TYPE_RETRACTS ElseIf resp = vbNo Then grp = TYPE_WALL Else grp = ""
+    If resp = vbYes Then
+        grp = TYPE_RETRACTS
+    ElseIf resp = vbNo Then
+        grp = TYPE_WALL
+    Else
+        grp = ""
+    End If
     
     LogDiagnostic "INFO", "Init_SootblowerLocator", "Fallback input received", "Number: '" & numTxt & "', Group: '" & grp & "'"
     
@@ -229,13 +235,13 @@ Public Sub SB_ExecuteSearch(ByVal numberText As String, ByVal groupSel As String
             SB_Log "AmbiguousNumber", num, groupSel, UBound(idxs), "Multiple groups match this number."
             Dim choose As VbMsgBoxResult
             choose = MsgBox("More than one sootblower uses this number. Choose a group: Yes = IK/EL (Retracts), No = IR/WB (Wall Blower).", vbYesNoCancel + vbQuestion, "Choose Group")
-            If choose = vbYes Then 
+            If choose = vbYes Then
                 groupSel = TYPE_RETRACTS
                 LogDiagnostic "INFO", "SB_ExecuteSearch", "User selected Retracts group", ""
-            ElseIf choose = vbNo Then 
+            ElseIf choose = vbNo Then
                 groupSel = TYPE_WALL
                 LogDiagnostic "INFO", "SB_ExecuteSearch", "User selected Wall group", ""
-            ElseIf choose = vbCancel Then 
+            ElseIf choose = vbCancel Then
                 LogDiagnostic "INFO", "SB_ExecuteSearch", "User cancelled group selection", ""
                 Exit Sub
             End If
@@ -436,7 +442,11 @@ Private Sub CountByGroup(ByVal dataLo As ListObject, ByVal idxs As Variant, ByRe
         fs = CStr(dataLo.DataBodyRange.Cells(r, fsIdx).Value)
         tagText = CStr(dataLo.DataBodyRange.Cells(r, tagIdx).Value)
         ParseSSBTag tagText, sb, num, tcode
-        If IsRetracts(fs, tcode) Then outRetr = outRetr + 1 ElseIf IsWall(fs, tcode) Then outWall = outWall + 1
+        If IsRetracts(fs, tcode) Then
+            outRetr = outRetr + 1
+        ElseIf IsWall(fs, tcode) Then
+            outWall = outWall + 1
+        End If
     Next i
 End Sub
 
