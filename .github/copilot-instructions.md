@@ -25,7 +25,7 @@
 
 ## Modes: how to add/use
 - Add/ensure a mode row in `ModeConfigTable` (ModeName, FilterFormula, OutputColumns, DisplayType, CustomHandler). FilterFormula can reference columns using tokens like [@ColumnName] (parsed by `EvaluateModeFormula`).
-- Optionally wire a CustomHandler (e.g., `Init_SootblowerLocator`) for specialized UI (`ActiveModules/frmSootblowerLocator.frm`, `SootblowerFormCreator.bas`, `SootblowerFormFactory.bas`).
+- Optionally wire a CustomHandler (e.g., `Init_SootblowerLocator`) for specialized UI (`ActiveModules/frmSootblowerLocator.frm`, `ActiveModules/mod_SSB_RuntimeBinder.bas`, `ActiveModules/C_SSB_BtnHandler.cls`, `ActiveModules/SootblowerFormCreator.bas`; factory deprecated/disabled in `ActiveModules/SootblowerFormFactory.bas`).
 - Programmatic output for modes: call `OutputModeResults` (reads active mode, applies FilterFormula, writes `OutputColumns`).
 - Utilities to seed config: `ActiveModules/temp_mod_ConfigTableTools.bas` provides helpers like `Ensure_ModeConfigEntry_SootblowerLocation` and `Ensure_ConfigKeys_Sootblower`.
 
@@ -51,6 +51,7 @@
 - Add a mode: insert ModeConfigTable row (ModeName = "Sootblower Location"), set FilterFormula using [@Column] tokens and OutputColumns; set `CustomHandler = Init_SootblowerLocator`; then run `OutputModeResults`.
 - Tune search output: set `Out_Column1..8` in ConfigTable (e.g., "Tag ID", "Equipment Description"); refresh.
 - Respect empty inputs: use `Safe_PerformSearch`/`Safe_OutputAllVisible` entrypoints; they guard against showing all rows by default.
+- Bind any plain UserForm at runtime (no VBIDE): create a basic form with a textbox, three option buttons, and four buttons; optionally Tag controls with roles like `role:sb_number`, `role:opt_all`, `role:btn_search`; then run `SSB_BindAndShow "UserForm1"` to wire events via `mod_SSB_RuntimeBinder`.
 
 ---
 If anything here is ambiguous or missing for your task, ask to refine this file and we’ll update it immediately.
