@@ -1,0 +1,24 @@
+Total rows: 63484
+Changed rows: 23906 (37.66%)
+
+Confidence histogram (by 10s):
+  100-109: 60139
+  80-89: 84
+  90-99: 3261
+
+Top reasoning tags:
+  No change needed: 60139
+  Object Type mapped MISC -> Miscellaneous Equipment: 11332
+  Object Type mapped SWCH -> Switch: 8361
+  Normalized whitespace/title case: 1341
+  Object Type mapped HEATR -> Heater: 726
+  Object Type mapped FUSE -> Fuse: 610
+  Forced acronym uppercase: ID: 530
+  Forced acronym uppercase: AC: 415
+  Forced acronym uppercase: PA: 290
+  Forced acronym uppercase: MCC: 193
+  Object Type mapped TANK -> Tank: 183
+  Forced acronym uppercase: DC: 174
+  Enforced protected phrase casing: Heater: 162
+  Forced acronym uppercase: HVAC: 100
+  Expanded directional based on contextual keywords: 98

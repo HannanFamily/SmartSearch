@@ -1,0 +1,82 @@
+acronyms_upper:
+  # Always keep these tokens uppercase (exact token match, case-insensitive)
+  - AQCS
+  - DC
+  - AC
+  - HVAC
+  - BMS
+  - CEMS
+  - ID
+  - FD
+  - PA
+  - MCC
+  - VFD
+  - UPS
+  - PLC
+  - IP
+  - LP
+  - HP
+  - HMI
+  - HTR
+  - HPU
+  - VLV
+  - PSV
+  - MOV
+
+protected_words:
+  # Words/phrases to preserve with exact casing (title case unless acronym)
+  - Accessory Equipment
+  - Instrument Equipment
+  - Valve Equipment
+  - Indicating Light
+  - Bus Circuit Breaker
+  - Fuse
+  - Heater
+  - Cabinet
+  - Screen
+  - Air Preheater
+  - Sootblower
+
+spaced_letter_fixes:
+  # Regex (ignore-case) -> replacement
+  - pattern: "\\bPres\\s*sure\\b"
+    replacement: "Pressure"
+  - pattern: "\\bPres\\s*s\\b"
+    replacement: "Press"
+  - pattern: "\\bIndicat\\s*ing\\b"
+    replacement: "Indicating"
+  - pattern: "\\bCabin\\s*et\\b"
+    replacement: "Cabinet"
+  - pattern: "\\bCir\\s*cuit\\b"
+    replacement: "Circuit"
+  - pattern: "\\bGen\\s*erator\\b"
+    replacement: "Generator"
+
+directional_context_keywords:
+  # If a single-letter directional appears adjacent to one of these, expansion is allowed
+  - wall
+  - side
+  - area
+  - wing
+  - bay
+  - building
+  - room
+  - door
+  - panel
+  - cabinet
+  - line
+
+directional_expansions:
+  N: North
+  S: South
+  E: East
+  W: West
+
+object_type_map:
+  # Confident expansions for common abbreviations
+  SWCH: Switch
+  HEATR: Heater
+  STRCT: Structure
+  FUSE: Fuse
+  TANK: Tank
+  MISC: Miscellaneous Equipment
