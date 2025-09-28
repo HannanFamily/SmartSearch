@@ -321,8 +321,14 @@ Public Function CreateSootblowerForm() As Object
     
     ' ===== Attach Event Handlers =====
     
-    ' Use code events since we can't attach directly
-    AttachEventHandlers frm
+    ' Bind runtime event handler class for reliable click events
+    Dim ev As C_SSB_FormEvents
+    Set ev = New C_SSB_FormEvents
+    ev.Bind frm
+    ' Keep reference alive by stashing on the form's Tag
+    On Error Resume Next
+    Set frm.Tag = ev ' Tag is Variant; stores object to keep it alive
+    On Error GoTo 0
     
     ' Return the form
     Set CreateSootblowerForm = frm
@@ -334,30 +340,7 @@ EH:
 End Function
 
 Private Sub AttachEventHandlers(ByRef frm As Object)
-    ' Store reference to form in a module-level variable
-    ' for event handling. This is a workaround for dynamic forms.
-    
-    ' When a form is created dynamically, we can't attach direct event handlers
-    ' Instead, we use onClick, onChange etc properties which take strings
-    
-    With frm.Controls("cmdSearch")
-        .OnClick = "Call mod_SootblowerLocator.SB_ExecuteSearch(UserForms(""" & frm.Name & """).Controls(""txtNumber"").Value, GetSelectedGroup(UserForms(""" & frm.Name & """)))"
-    End With
-    
-    With frm.Controls("cmdShowAll")
-        .OnClick = "Call mod_SootblowerLocator.SB_DisplayAll(GetSelectedGroup(UserForms(""" & frm.Name & """)))"
-    End With
-    
-    With frm.Controls("cmdAssociated")
-        .OnClick = "Call mod_SootblowerLocator.SB_ShowAssociated"
-    End With
-    
-    With frm.Controls("cmdClose")
-        .OnClick = "Unload UserForms(""" & frm.Name & """)"
-    End With
-    
-    ' For TextBox input validation, we need a custom approach
-    ' This is typically handled with a KeyPress event handler
+    ' Deprecated: string macro hooks replaced by WithEvents class
 End Sub
 
 Public Function GetSelectedGroup(ByRef frm As Object) As String

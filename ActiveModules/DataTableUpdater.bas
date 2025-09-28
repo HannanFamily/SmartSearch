@@ -227,9 +227,9 @@ Private Function ParseCsvLine(ByVal line As String) As Variant
     ReDim res(0 To 0)
     For i = 1 To Len(line)
         ch = Mid$(line, i, 1)
-        If ch = '"' Then
-            If inQuotes And i < Len(line) And Mid$(line, i + 1, 1) = '"' Then
-                cur = cur & '"'
+        If ch = """" Then
+            If inQuotes And i < Len(line) And Mid$(line, i + 1, 1) = """" Then
+                cur = cur & """"
                 i = i + 1
             Else
                 inQuotes = Not inQuotes
