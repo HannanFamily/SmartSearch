@@ -64,6 +64,57 @@ def avoid_bad_expansions(text: str) -> Tuple[str, List[str]]:
     return text, notes
 
 
+def apply_regex_patterns(text: str, patterns: List[Dict[str, str]], label: str) -> Tuple[str, List[str]]:
+    """Generic regex pattern applier using a list of {pattern, replacement}."""
+    notes: List[str] = []
+    new = text
+    for rule in patterns or []:
+        pat = rule.get('pattern')
+        repl = rule.get('replacement')
+        if not pat or repl is None:
+            continue
+        if re.search(pat, new, flags=re.IGNORECASE):
+            new2 = re.sub(pat, repl, new, flags=re.IGNORECASE)
+            if new2 != new:
+                notes.append(f"{label}: {pat} -> {repl}")
+                new = new2
+    return new, notes
+
+
+def merge_split_tokens(text: str, cfg: dict) -> Tuple[str, List[str]]:
+    """Merge tokens that were erroneously split inside domain terms.
+    Uses regex patterns from YAML to correct e.g., 'Va Riable' -> 'Variable'."""
+    notes: List[str] = []
+    patterns = cfg.get('split_merge_patterns', [])
+    new = text
+    for rule in patterns:
+        pat = rule.get('pattern')
+        repl = rule.get('replacement')
+        if not pat or repl is None:
+            continue
+        if re.search(pat, new, flags=re.IGNORECASE):
+            new = re.sub(pat, repl, new, flags=re.IGNORECASE)
+            notes.append(f"Merged split token: {repl}")
+    return new, notes
+
+
+def correct_misspellings(text: str, cfg: dict) -> Tuple[str, List[str]]:
+    """Fix common misspellings (post-merge) using explicit rules and light fuzzy match within words."""
+    notes: List[str] = []
+    rules = cfg.get('misspellings', [])
+    new = text
+    for r in rules:
+        wrong = r.get('wrong')
+        right = r.get('right')
+        if not wrong or right is None:
+            continue
+        pattern = re.compile(rf"\b{re.escape(wrong)}\b", flags=re.IGNORECASE)
+        if pattern.search(new):
+            new = pattern.sub(right, new)
+            notes.append(f"Fixed misspelling: {wrong} -> {right}")
+    return new, notes
+
+
 def load_config(path: str) -> dict:
     if not os.path.exists(path):
         return {}
@@ -174,12 +225,39 @@ def clean_description(desc: str, obj_type: str, mapping: Dict[str, str], cfg: di
     else:
         conf = 0
 
-    # Step 1: fix spaced letters
+    # Step 1: merge split tokens from YAML patterns
+    merged, ns = merge_split_tokens(cur, cfg)
+    if merged != cur:
+        cur = merged
+        notes += ns
+        conf = max(conf, 88)
+
+    # Step 1b: object-context merges (e.g., Heat Er -> Heater if type Heater)
+    if obj_type:
+        key = (obj_type or '').strip().upper()
+        mapped = cfg.get('object_type_map', {}).get(key)
+        label = mapped or obj_type
+        ctx_rules = (cfg.get('object_context_merge_patterns', {}) or {}).get(label, [])
+        if ctx_rules:
+            cur2, ns = apply_regex_patterns(cur, ctx_rules, f'ContextMerge[{label}]')
+            if cur2 != cur:
+                cur = cur2
+                notes += ns
+                conf = max(conf, 90)
+
+    # Step 1c: fix spaced letters (generic regexes)
     fixed, ns = fix_spaced_letters(cur)
     if fixed != cur:
         cur = fixed
         notes += ns
         conf = max(conf, 85)
+
+    # Step 1d: correct misspellings
+    corrected, ns = correct_misspellings(cur, cfg)
+    if corrected != cur:
+        cur = corrected
+        notes += ns
+        conf = max(conf, 90)
 
     # Step 2: normalize whitespace and title case
     norm = title_case_equipment(cur)
@@ -255,6 +333,63 @@ def process_file(input_path: str, mapping: Dict[str, str], cfg: dict) -> List[Di
     return rows_out
 
 
+def _tokenize(text: str) -> List[str]:
+    text = unidecode(text or '')
+    return re.findall(r"[A-Za-z0-9]+", text)
+
+
+def analyze_vocab(input_path: str, cfg: dict) -> Tuple[Dict[str, int], Dict[Tuple[str, str], int], List[Dict[str, str]]]:
+    """Build token and bigram frequencies using ORIGINAL descriptions and collect anomalies."""
+    token_freq: Dict[str, int] = {}
+    bigram_freq: Dict[Tuple[str, str], int] = {}
+    anomalies: List[Dict[str, str]] = []
+    text = _read_csv_text(input_path)
+    reader = csv.DictReader(io.StringIO(text))
+    rows = list(reader)
+
+    settings = (cfg.get('anomaly_settings') or {})
+    short_max = int(settings.get('suspect_short_token_max_len', 2))
+    watch = set((settings.get('watch_tokens') or []))
+    allowed_short = set([t.lower() for t in (cfg.get('acronyms_upper') or [])] + ['of', 'to', 'in', 'on', 'by', 'at', 'id'])
+
+    # Frequency counts
+    for row in rows:
+        orig = row.get('Equipment Description') or ''
+        toks = [t.lower() for t in _tokenize(orig)]
+        for t in toks:
+            token_freq[t] = token_freq.get(t, 0) + 1
+        for i in range(len(toks) - 1):
+            bg = (toks[i], toks[i+1])
+            bigram_freq[bg] = bigram_freq.get(bg, 0) + 1
+
+    # Anomaly detection per row
+    for idx, row in enumerate(rows, start=1):
+        orig = row.get('Equipment Description') or ''
+        toks = _tokenize(orig)
+        suspects: List[str] = []
+        for t in toks:
+            tl = t.lower()
+            if tl.isdigit():
+                continue
+            if len(t) <= short_max and tl not in allowed_short:
+                # Short odd tokens like Er, Nd
+                if re.match(r"^[A-Za-z]{1,2}$", t):
+                    suspects.append(t)
+            if token_freq.get(tl, 0) == 1 and len(tl) > 2:
+                suspects.append(t)
+            if tl in watch:
+                suspects.append(t)
+        if suspects:
+            anomalies.append({
+                'Row': str(idx),
+                'Equipment Number': row.get('SAP ID') or row.get('Equipment Number') or '',
+                'Original Description': orig,
+                'Suspect Tokens': ', '.join(sorted(set(suspects), key=str.lower))
+            })
+
+    return token_freq, bigram_freq, anomalies
+
+
 def write_csv(rows: List[Dict[str, str]], out_path: str):
     if not rows:
         return
@@ -273,10 +408,34 @@ def write_text(text: str, out_path: str):
         f.write(text)
 
 
+def write_freq_csv(freq: Dict, out_path: str):
+    if not freq:
+        return
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    # Make rows
+    if isinstance(next(iter(freq.keys())), tuple):
+        rows = [{'Token1': k[0], 'Token2': k[1], 'Count': v} for k, v in sorted(freq.items(), key=lambda kv: kv[1], reverse=True)]
+    else:
+        rows = [{'Token': k, 'Count': v} for k, v in sorted(freq.items(), key=lambda kv: kv[1], reverse=True)]
+    with open(out_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def main():
     cfg = load_config(CONFIG_FILE)
     mapping = learn_from_sample(SAMPLE_FILE)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    # Build vocab and anomalies from ORIGINAL descriptions
+    tok_freq, bigram_freq, anomalies = analyze_vocab(MAIN_FILE, cfg)
+    tokens_file = os.path.join(OUTPUT_DIR, f'Equipment_Data_Tokens_{timestamp}.csv')
+    bigrams_file = os.path.join(OUTPUT_DIR, f'Equipment_Data_Bigrams_{timestamp}.csv')
+    anomalies_file = os.path.join(OUTPUT_DIR, f'Equipment_Data_Anomalies_{timestamp}.csv')
+    write_freq_csv(tok_freq, tokens_file)
+    write_freq_csv(bigram_freq, bigrams_file)
+    write_csv(anomalies, anomalies_file)
 
     # Process main equipment data
     out_rows = process_file(MAIN_FILE, mapping, cfg)
@@ -287,6 +446,36 @@ def main():
     changes_only = [r for r in out_rows if (r.get('Suggested Edit') or '').strip() or (r.get('Object Type (Suggested)') or '').strip()]
     changes_file = os.path.join(OUTPUT_DIR, f'Equipment_Data_Cleanup_ChangesOnly_{timestamp}.csv')
     write_csv(changes_only, changes_file)
+
+    # Produce CLEANED dataset (apply suggestions to Equipment Description only)
+    original_text = _read_csv_text(MAIN_FILE)
+    reader = csv.DictReader(io.StringIO(original_text))
+    orig_rows = list(reader)
+    id_keys = ['SAP ID', 'Equipment Number']
+    def get_id(r: Dict[str, str]):
+        for k in id_keys:
+            if r.get(k):
+                return r.get(k)
+        return None
+    sugg_by_id: Dict[str, str] = {}
+    for r in out_rows:
+        rid = r.get('Equipment Number')
+        s = (r.get('Suggested Edit') or '').strip()
+        if rid and s:
+            sugg_by_id[rid] = s
+    cleaned_rows: List[Dict[str, str]] = []
+    for r in orig_rows:
+        rid = get_id(r)
+        s = sugg_by_id.get(rid)
+        new_r = dict(r)
+        if s:
+            new_r['Equipment Description'] = s
+        cleaned_rows.append(new_r)
+    cleaned_file = os.path.join(OUTPUT_DIR, f'Equipment_Data_CLEANED_{timestamp}.csv')
+    with open(cleaned_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=reader.fieldnames)
+        writer.writeheader()
+        writer.writerows(cleaned_rows)
 
     # Summary report
     total = len(out_rows)
@@ -326,8 +515,12 @@ def main():
     summary_file = os.path.join(OUTPUT_DIR, f'Equipment_Data_Cleanup_Summary_{timestamp}.txt')
     write_text('\n'.join(lines), summary_file)
 
+    print(f"Wrote tokens: {tokens_file}")
+    print(f"Wrote bigrams: {bigrams_file}")
+    print(f"Wrote anomalies: {anomalies_file}")
     print(f"Wrote suggestions: {out_file}")
     print(f"Wrote changes-only: {changes_file}")
+    print(f"Wrote CLEANED: {cleaned_file}")
     print(f"Wrote summary: {summary_file}")
 
 if __name__ == '__main__':
