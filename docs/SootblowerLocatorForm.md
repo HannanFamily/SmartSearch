@@ -89,6 +89,19 @@ The SootblowerFormCreator module will automatically create the form at runtime i
 3. Run `SSB_BindAndShow "UserForm1"`
 4. Click the buttons to trigger search/display logic in `mod_SootblowerLocator`
 
+### Option 5: Use the Design-time Builder (auto-create frmSootblowerLocator)
+
+This option programmatically creates the compiled form using the VBIDE, with all controls and Tags set. Then it uses the runtime binder to wire events.
+
+Requirements:
+- Trust Center: enable "Trust access to the VBA project object model"
+
+Steps:
+1. Ensure `ActiveModules/SootblowerFormBuilder.bas` is imported
+2. In the VBA editor, run `Dev_BuildAndShow_SootblowerForm`
+3. The builder will create `frmSootblowerLocator` (or rebuild it), then call the binder to show it
+4. If the binder is unavailable, it will simply show the form (buttons will be inert until wired)
+
 ## Troubleshooting
 
 If the form fails to appear or buttons do nothing:
