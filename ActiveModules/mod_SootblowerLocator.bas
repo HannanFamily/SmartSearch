@@ -84,16 +84,18 @@ Public Sub Init_SootblowerLocator()
         Dim formCreated As Boolean: formCreated = False
         Dim frm As Object
 
-        ' Prefer dynamic creator (works even without a compiled .frm)
-        Set frm = Application.Run("SootblowerFormCreator.CreateSootblowerForm")
-        If Not frm Is Nothing Then
-            frm.Show vbModeless
+        ' Try design-time form first if present
+        VBA.UserForms.Add("frmSootblowerLocator").Show vbModeless
+        If Err.Number = 0 Then
             formCreated = True
         Else
             Err.Clear
-            ' Fallback to design-time form if present in project
-            VBA.UserForms.Add("frmSootblowerLocator").Show vbModeless
-            If Err.Number = 0 Then formCreated = True
+            ' Fallback to dynamic creator
+            Set frm = Application.Run("SootblowerFormCreator.CreateSootblowerForm")
+            If Not frm Is Nothing Then
+                frm.Show vbModeless
+                formCreated = True
+            End If
         End If
 
         On Error GoTo ErrorHandler
@@ -1115,32 +1117,29 @@ End Function
 Private Function EnsureSootblowerForm() As Boolean
     ' Function to ensure the Sootblower Form exists or can be created
     ' Returns True if the form is available, False otherwise
-    
+
     On Error Resume Next
     LogDiagnostic "INFO", "EnsureSootblowerForm", "Checking for UserForm availability", ""
-    
-    ' First try to reference the form directly - if it exists in the project
+
+    ' Prefer compiled design-time form if present
     Dim testForm As Object
     Set testForm = VBA.UserForms.Add("frmSootblowerLocator")
-    
     If Err.Number = 0 Then
-        ' Form exists in the project
-        testForm.Hide  ' Hide the test instance
-        LogDiagnostic "INFO", "EnsureSootblowerForm", "UserForm exists in project", ""
+        testForm.Hide
+        LogDiagnostic "INFO", "EnsureSootblowerForm", "Design-time UserForm present", ""
         EnsureSootblowerForm = True
         Exit Function
     End If
-    
     Err.Clear
-    
-    ' Next, try to use the SootblowerFormCreator if available
+
+    ' Fallback: dynamic creator available?
     If FormCreatorAvailable() Then
-        LogDiagnostic "INFO", "EnsureSootblowerForm", "Using SootblowerFormCreator", ""
-        EnsureSootblowerForm = True  ' The form will be created when needed
+        LogDiagnostic "INFO", "EnsureSootblowerForm", "Dynamic creator available", ""
+        EnsureSootblowerForm = True
         Exit Function
     End If
-    
-    ' Neither option available, log the issue
+
+    ' Neither path is available
     LogDiagnostic "WARN", "EnsureSootblowerForm", "Form not available", "Will use fallback dialog"
     EnsureSootblowerForm = False
 End Function
