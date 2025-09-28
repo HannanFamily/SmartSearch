@@ -38,3 +38,26 @@ Public Sub RUN_Dev_SmokeTest()
     Exit Sub
 EH: MsgBox "Smoke test failed: " & Err.Description, vbCritical
 End Sub
+
+Public Sub RUN_Dev_AddDashboardButtons()
+    On Error GoTo EH
+    Dim ws As Worksheet
+    Set ws = SheetByName("Dashboard")
+    If ws Is Nothing Then
+        MsgBox "Dashboard sheet not found.", vbExclamation
+        Exit Sub
+    End If
+    Dim shp As Shape
+    ' Add Test+Export button
+    Set shp = ws.Shapes.AddShape(msoShapeRoundedRectangle, 20, 60, 180, 28)
+    shp.TextFrame2.TextRange.Text = "Test + Export"
+    shp.OnAction = "Dev_Exports.RUN_Test_And_Export"
+    ' Add Export only button
+    Set shp = ws.Shapes.AddShape(msoShapeRoundedRectangle, 210, 60, 180, 28)
+    shp.TextFrame2.TextRange.Text = "Export Snapshot"
+    shp.OnAction = "Dev_Exports.RUN_Export_ProjectSnapshot"
+    MsgBox "Buttons added to Dashboard.", vbInformation
+    Exit Sub
+EH:
+    MsgBox "Failed to add buttons: " & Err.Description, vbCritical
+End Sub
