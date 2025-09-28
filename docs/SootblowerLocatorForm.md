@@ -1,4 +1,4 @@
-# Sootblower Locator Form Documentation
+![1759035277935](image/SootblowerLocatorForm/1759035277935.png)![1759035281191](image/SootblowerLocatorForm/1759035281191.png)![1759035291102](image/SootblowerLocatorForm/1759035291102.png)![1759035297438](image/SootblowerLocatorForm/1759035297438.png)# Sootblower Locator Form Documentation
 
 ## Overview
 
@@ -98,9 +98,10 @@ Requirements:
 
 Steps:
 1. Ensure `ActiveModules/SootblowerFormBuilder.bas` is imported
-2. In the VBA editor, run `Dev_BuildAndShow_SootblowerForm`
-3. The builder will create `frmSootblowerLocator` (or rebuild it), then call the binder to show it
-4. If the binder is unavailable, it will simply show the form (buttons will be inert until wired)
+2. Press Alt+F8 to open the macro selection window
+3. Select and run `RUN_BuildAndShow_SootblowerForm`
+4. The builder will create `frmSootblowerLocator` (or rebuild it), then call the binder to show it
+5. To force a rebuild, run `RUN_FORCE_REBUILD_SootblowerForm` instead
 
 ## Troubleshooting
 

@@ -59,6 +59,19 @@ Public Sub Dev_BuildAndShow_SootblowerForm(Optional ByVal forceRebuild As Boolea
     End If
 End Sub
 
+' ---
+' Parameter-less wrappers to make these macros visible in the Excel Macro Dialog (Alt+F8)
+' ---
+Public Sub RUN_BuildAndShow_SootblowerForm()
+    ' Runs the builder/show logic without forcing a rebuild.
+    Dev_BuildAndShow_SootblowerForm forceRebuild:=False
+End Sub
+
+Public Sub RUN_FORCE_REBUILD_SootblowerForm()
+    ' Forces a complete rebuild of the form before showing.
+    Dev_BuildAndShow_SootblowerForm forceRebuild:=True
+End Sub
+
 Private Function ComponentExists(ByVal vbComps As Object, ByVal name As String) As Boolean
     On Error Resume Next
     Dim tmp As Object
