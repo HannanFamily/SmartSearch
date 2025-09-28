@@ -25,7 +25,15 @@ EH:
     MsgBox "Error in RUN_ApplyCleanedData: " & Err.Number & ": " & Err.Description, vbExclamation
 End Sub
 
-Public Sub ApplyCleanedDataToDataTable()
+Public Sub RUN_ApplyCleanedData_DryRun()
+    On Error GoTo EH
+    ApplyCleanedDataToDataTable True
+    Exit Sub
+EH:
+    MsgBox "Error in RUN_ApplyCleanedData_DryRun: " & Err.Number & ": " & Err.Description, vbExclamation
+End Sub
+
+Public Sub ApplyCleanedDataToDataTable(Optional ByVal dryRun As Boolean = False)
     On Error GoTo EH
 
     Dim cleanedPath As String, suggPath As String
@@ -70,6 +78,15 @@ Public Sub ApplyCleanedDataToDataTable()
         Exit Sub
     End If
 
+    ' If anomalies exist, prompt before applying (unless dry-run)
+    Dim anomaliesPath As String: anomaliesPath = FindLatestInOutput("Equipment_Data_Anomalies_")
+    If Not dryRun And Len(anomaliesPath) > 0 Then
+        If MsgBox("Anomalies report found: " & anomaliesPath & vbCrLf & _
+                  "Proceed with applying changes?", vbQuestion + vbYesNo, "Anomalies Detected") <> vbYes Then
+            Exit Sub
+        End If
+    End If
+
     Dim r As Long, updatedDesc As Long, updatedType As Long
     Dim rid As String, curDesc As String, curType As String
     Dim newDesc As String, newType As String
@@ -82,29 +99,57 @@ Public Sub ApplyCleanedDataToDataTable()
                 newDesc = dictDesc(rid)
                 curDesc = CStr(dataLo.DataBodyRange.Cells(r, descCol).Value)
                 If StrComp(Trim$(curDesc), Trim$(newDesc), vbTextCompare) <> 0 Then
-                    dataLo.DataBodyRange.Cells(r, descCol).Value = newDesc
-                    updatedDesc = updatedDesc + 1
+                    If dryRun Then
+                        WritePreviewRow rid, "Equipment Description", curDesc, newDesc
+                    Else
+                        dataLo.DataBodyRange.Cells(r, descCol).Value = newDesc
+                        updatedDesc = updatedDesc + 1
+                    End If
                 End If
             End If
             If typeCol > 0 And dictObjType.Exists(rid) Then
                 newType = dictObjType(rid)
                 curType = CStr(dataLo.DataBodyRange.Cells(r, typeCol).Value)
                 If Len(newType) > 0 And StrComp(Trim$(curType), Trim$(newType), vbTextCompare) <> 0 Then
-                    dataLo.DataBodyRange.Cells(r, typeCol).Value = newType
-                    updatedType = updatedType + 1
+                    If dryRun Then
+                        WritePreviewRow rid, "Object Type", curType, newType
+                    Else
+                        dataLo.DataBodyRange.Cells(r, typeCol).Value = newType
+                        updatedType = updatedType + 1
+                    End If
                 End If
             End If
         End If
     Next r
     Application.ScreenUpdating = True
 
-    WriteApplyLog cleanedPath, suggPath, descCount, objTypeCount, updatedDesc, updatedType
-    MsgBox "Applied cleaned data. Descriptions updated: " & updatedDesc & _
-           ", Object Types updated: " & updatedType, vbInformation
+    If dryRun Then
+        MsgBox "Dry-run complete. See sheet 'DataCleanup_Preview' for proposed changes.", vbInformation
+    Else
+        WriteApplyLog cleanedPath, suggPath, descCount, objTypeCount, updatedDesc, updatedType
+        MsgBox "Applied cleaned data. Descriptions updated: " & updatedDesc & _
+               ", Object Types updated: " & updatedType, vbInformation
+    End If
     Exit Sub
 EH:
     Application.ScreenUpdating = True
     MsgBox "Error in ApplyCleanedDataToDataTable: " & Err.Number & ": " & Err.Description, vbExclamation
+End Sub
+
+Private Sub WritePreviewRow(ByVal equipmentId As String, ByVal fieldName As String, ByVal oldVal As String, ByVal newVal As String)
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = SheetByName("DataCleanup_Preview")
+    If ws Is Nothing Then
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        ws.Name = "DataCleanup_Preview"
+        ws.Range("A1:D1").Value = Array("Equipment ID", "Field", "Old Value", "New Value")
+    End If
+    Dim r As Long: r = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+    ws.Cells(r, 1).Value = equipmentId
+    ws.Cells(r, 2).Value = fieldName
+    ws.Cells(r, 3).Value = oldVal
+    ws.Cells(r, 4).Value = newVal
 End Sub
 
 Private Function FindLatestInOutput(prefix As String) As String

@@ -1,6 +1,8 @@
 Attribute VB_Name = "SootblowerFormCreator"
 Option Explicit
 
+Private mHandlers As Collection ' persist event handler instances
+
 ' Sootblower Form Creator
 ' ------------------------------------------------------------
 ' This module creates a UserForm for Sootblower Locator functionality
@@ -322,13 +324,12 @@ Public Function CreateSootblowerForm() As Object
     ' ===== Attach Event Handlers =====
     
     ' Bind runtime event handler class for reliable click events
+    If mHandlers Is Nothing Then Set mHandlers = New Collection
     Dim ev As C_SSB_FormEvents
     Set ev = New C_SSB_FormEvents
     ev.Bind frm
-    ' Keep reference alive by stashing on the form's Tag
-    On Error Resume Next
-    Set frm.Tag = ev ' Tag is Variant; stores object to keep it alive
-    On Error GoTo 0
+    ' Store to module-level collection to keep alive
+    mHandlers.Add ev
     
     ' Return the form
     Set CreateSootblowerForm = frm
