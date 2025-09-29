@@ -3,6 +3,7 @@ acronyms_upper:
   - AQCS
   - DC
   - JV
+  - EL
   - AC
   - HVAC
   - BMS
@@ -24,6 +25,13 @@ acronyms_upper:
   - PSV
   - MOV
   - I&C
+  - DCS
+  - TA
+  - RTD
+  - RSVF
+  - ATC
+  - ID
+  - FD
 
 # Context words that make an acronym safe/expected when adjacent
 # e.g., allow "DC Panel" without flagging "DC" as a suspect short token
@@ -119,6 +127,10 @@ misspellings:
     right: "Variable"
   - wrong: "Nd"
     right: "And"
+  - wrong: "Rm"
+    right: "Room"
+  - wrong: "RM"
+    right: "Room"
 
 split_merge_patterns:
   # Merge tokens that were erroneously split within known words/phrases
@@ -148,6 +160,33 @@ split_merge_patterns:
     replacement: "Lube Oil Reservoir"
   - pattern: "\\bVariable Speed D\\b"
     replacement: "Variable Speed Drive"
+  # New spliced-word corrections
+  - pattern: "\\bCr\\s*Usher\\b"
+    replacement: "Crusher"
+  - pattern: "\\bBlow\\s*Er\\b"
+    replacement: "Blower"
+  - pattern: "\\bTan\\s*K\\b"
+    replacement: "Tank"
+  - pattern: "\\bDe\\s*Ck\\b"
+    replacement: "Deck"
+  - pattern: "\\bCont\\s*Rol\\b"
+    replacement: "Control"
+  - pattern: "\\bMaint\\s*Enance\\b"
+    replacement: "Maintenance"
+  - pattern: "\\bA\\s*Rea\\b"
+    replacement: "Area"
+  - pattern: "\\bFil\\s*Ter\\b"
+    replacement: "Filter"
+  - pattern: "\\bSout\\s*H\\b"
+    replacement: "South"
+  - pattern: "\\bNort\\s*H\\b"
+    replacement: "North"
+  - pattern: "\\bSta\\s*Ir\\b"
+    replacement: "Stair"
+  - pattern: "\\bOff\\s*Ice\\b"
+    replacement: "Office"
+  - pattern: "\\bR\\s*m\\b"
+    replacement: "Rm"
 
 anomaly_settings:
   min_token_count: 3

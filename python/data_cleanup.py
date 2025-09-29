@@ -126,6 +126,29 @@ def merge_split_tokens(text: str, cfg: dict) -> Tuple[str, List[str]]:
         if re.search(pat, new, flags=re.IGNORECASE):
             new = re.sub(pat, repl, new, flags=re.IGNORECASE)
             notes.append(f"Merged split token: {repl}")
+    # Elevation fixes: merge EL. or EL followed by spaced digits into solid number
+    # Examples: "EL. 9 70" -> "EL. 970", "EL 1 019" -> "EL 1019"
+    # Only merge when the resulting number >= 970
+    def _merge_spaced_number(match):
+        prefix = match.group(1)
+        digits = re.sub(r"\s+", "", match.group(2))
+        try:
+            val = int(digits)
+        except ValueError:
+            return match.group(0)
+        if val >= 970:
+            return f"{prefix}{val}"
+        return match.group(0)
+
+    # Patterns cover: EL. 9 70, EL 1 019, also bare spaced numbers like 1 019
+    merged1 = re.sub(r"\b(EL\.?\s*)([0-9](?:\s*[0-9])+)", _merge_spaced_number, new, flags=re.IGNORECASE)
+    if merged1 != new:
+        notes.append("Merged spaced elevation digits after EL")
+        new = merged1
+    merged2 = re.sub(r"(?<![A-Za-z0-9])([0-9])(?:\s*([0-9])){1,}\b", lambda m: re.sub(r"\s+", "", m.group(0)), new)
+    if merged2 != new:
+        notes.append("Merged spaced digits into single number")
+        new = merged2
     return new, notes
 
 
@@ -175,6 +198,9 @@ def enforce_acronyms_and_protected(text: str, cfg: dict) -> Tuple[str, List[str]
         if pattern.search(text2):
             text2 = pattern.sub(phrase, text2)
             notes.append(f"Enforced protected phrase casing: {phrase}")
+    # Normalize EL casing explicitly (Elevation)
+    text2 = re.sub(r"\bEL\b", "EL", text2)
+    text2 = re.sub(r"\bEl\.", "EL.", text2)
     return text2, notes
 
 
@@ -194,6 +220,26 @@ def maybe_expand_directionals(text: str, cfg: dict) -> Tuple[str, List[str]]:
     if changed:
         notes.append('Expanded directional based on contextual keywords')
     return ' '.join(words), notes
+
+
+def normalize_room_abbrev(text: str) -> Tuple[str, List[str]]:
+    """Normalize room abbreviations:
+    - "R m", "R m.", "Rm", "RM" -> "Room" when used as a standalone token.
+    Keep words like "RMS" unaffected.
+    """
+    notes: List[str] = []
+    new = text
+    # First, collapse spliced R m -> Rm
+    new2 = re.sub(r"\bR\s*m\.?\b", "Rm", new, flags=re.IGNORECASE)
+    if new2 != new:
+        notes.append("Collapsed spliced room abbreviation R m -> Rm")
+        new = new2
+    # Then map Rm or RM to Room when token
+    new3 = re.sub(r"\bRM\b|\bRm\b", "Room", new)
+    if new3 != new:
+        notes.append("Expanded room abbreviation to Room")
+        new = new3
+    return new, notes
 
 
 def _read_csv_text(path: str) -> str:
@@ -283,7 +329,14 @@ def clean_description(desc: str, obj_type: str, mapping: Dict[str, str], cfg: di
         notes += ns
         conf = max(conf, 85)
 
-    # Step 1d: correct misspellings
+    # Step 1d: normalize room abbreviations (Rm -> Room, R m -> Room)
+    cur2, ns = normalize_room_abbrev(cur)
+    if cur2 != cur:
+        cur = cur2
+        notes += ns
+        conf = max(conf, 85)
+
+    # Step 1e: correct misspellings
     corrected, ns = correct_misspellings(cur, cfg)
     if corrected != cur:
         cur = corrected
@@ -413,6 +466,18 @@ def analyze_vocab(input_path: str, cfg: dict) -> Tuple[Dict[str, int], Dict[Tupl
                     allowed_next = set(acronym_ctx.get(tl, []))
                     if next_word in allowed_next:
                         pass
+                    # If this short token can merge with neighbors into known words (heuristic), don't flag
+                    elif i + 1 < len(toks):
+                        pair = (t + toks[i+1]).lower()
+                        # common merges observed
+                        merge_vocab = {
+                            'variable', 'blower', 'heater', 'lube', 'oil', 'unit', 'and',
+                            'crusher', 'tank', 'deck', 'control', 'maintenance', 'area', 'filter', 'south', 'north', 'stair', 'office', 'room'
+                        }
+                        if pair in merge_vocab:
+                            pass
+                        else:
+                            suspects.append(t)
                     else:
                         suspects.append(t)
             if token_freq.get(tl, 0) == 1 and len(tl) > 2:
