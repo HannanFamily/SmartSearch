@@ -2,6 +2,7 @@ acronyms_upper:
   # Always keep these tokens uppercase (exact token match, case-insensitive)
   - AQCS
   - DC
+  - JV
   - AC
   - HVAC
   - BMS
@@ -22,6 +23,19 @@ acronyms_upper:
   - VLV
   - PSV
   - MOV
+  - I&C
+
+# Context words that make an acronym safe/expected when adjacent
+# e.g., allow "DC Panel" without flagging "DC" as a suspect short token
+acronym_contexts:
+  DC:
+    - Panel
+    - Panelboard
+    - Drive
+    - Charger
+    - Distribution
+    - Bus
+    - Cabinet
 
 protected_words:
   # Words/phrases to preserve with exact casing (title case unless acronym)

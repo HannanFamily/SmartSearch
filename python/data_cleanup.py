@@ -19,9 +19,34 @@ _DEFAULT_OUTPUT_DIR = os.path.join(DATA_DIR, 'output')
 OUTPUT_DIR = os.environ.get('DATA_CLEANUP_OUTPUT_DIR') or _DEFAULT_OUTPUT_DIR
 OUTPUT_DIR = os.path.abspath(OUTPUT_DIR)
 
+# Resolve config file flexibly
+def _resolve_config_file(data_dir: str) -> str:
+    # 1) explicit file override
+    cfg_file = os.environ.get('DATA_CLEANUP_CONFIG_FILE')
+    if cfg_file and os.path.exists(cfg_file):
+        return os.path.abspath(cfg_file)
+    # 2) explicit config directory override
+    cfg_dir = os.environ.get('DATA_CLEANUP_CONFIG_DIR')
+    if cfg_dir:
+        cand = os.path.join(cfg_dir, 'data_cleanup_config.yaml')
+        if os.path.exists(cand):
+            return os.path.abspath(cand)
+    # 3) data_dir/data_cleanup_config.yaml
+    cand = os.path.join(data_dir, 'data_cleanup_config.yaml')
+    if os.path.exists(cand):
+        return os.path.abspath(cand)
+    # 4) sibling config folder: parent(data_dir)/config/data_cleanup_config.yaml
+    parent = os.path.dirname(os.path.abspath(data_dir))
+    cand = os.path.join(parent, 'config', 'data_cleanup_config.yaml')
+    if os.path.exists(cand):
+        return os.path.abspath(cand)
+    # 5) default under repo Data_Cleanup
+    cand = os.path.join(_DEFAULT_DATA_DIR, 'data_cleanup_config.yaml')
+    return os.path.abspath(cand)
+
 SAMPLE_FILE = os.path.join(DATA_DIR, 'Sample Original Data.csv')
 MAIN_FILE = os.path.join(DATA_DIR, 'Equipment Data.csv')
-CONFIG_FILE = os.path.join(DATA_DIR, 'data_cleanup_config.yaml')
+CONFIG_FILE = _resolve_config_file(DATA_DIR)
 
 # Basic normalization helpers
 _space_re = re.compile(r"\s+")
@@ -357,6 +382,9 @@ def analyze_vocab(input_path: str, cfg: dict) -> Tuple[Dict[str, int], Dict[Tupl
     short_max = int(settings.get('suspect_short_token_max_len', 2))
     watch = set((settings.get('watch_tokens') or []))
     allowed_short = set([t.lower() for t in (cfg.get('acronyms_upper') or [])] + ['of', 'to', 'in', 'on', 'by', 'at', 'id'])
+    # Context allowances for acronyms (e.g., allow DC when followed by Panel, etc.)
+    acronym_ctx_cfg = cfg.get('acronym_contexts') or {}
+    acronym_ctx = { (k or '').lower(): [str(w).lower() for w in (v or [])] for k, v in acronym_ctx_cfg.items() }
 
     # Frequency counts
     for row in rows:
@@ -373,14 +401,20 @@ def analyze_vocab(input_path: str, cfg: dict) -> Tuple[Dict[str, int], Dict[Tupl
         orig = row.get('Equipment Description') or ''
         toks = _tokenize(orig)
         suspects: List[str] = []
-        for t in toks:
+        for i, t in enumerate(toks):
             tl = t.lower()
             if tl.isdigit():
                 continue
             if len(t) <= short_max and tl not in allowed_short:
                 # Short odd tokens like Er, Nd
                 if re.match(r"^[A-Za-z]{1,2}$", t):
-                    suspects.append(t)
+                    # If acronym has an allowed next-word context, do not flag (e.g., DC Panel)
+                    next_word = (toks[i+1].lower() if i + 1 < len(toks) else '')
+                    allowed_next = set(acronym_ctx.get(tl, []))
+                    if next_word in allowed_next:
+                        pass
+                    else:
+                        suspects.append(t)
             if token_freq.get(tl, 0) == 1 and len(tl) > 2:
                 suspects.append(t)
             if tl in watch:
