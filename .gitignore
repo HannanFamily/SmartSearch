@@ -17,6 +17,13 @@ logs/**
 
 # Data cleanup outputs
 Data_Cleanup/output/**
+tools/Data_Cleanup_Package/output/**
+
+# Refined macro-free exports
+Refined_Exports/**
+
+# Clean macro-enabled builds
+Clean_Macro_Builds/**
 
 # Exports and snapshots
 Old_Code/ExportedModules_*/
