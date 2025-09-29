@@ -1,0 +1,156 @@
+acronyms_upper:
+  # Always keep these tokens uppercase (exact token match, case-insensitive)
+  - AQCS
+  - DC
+  - AC
+  - HVAC
+  - BMS
+  - CEMS
+  - ID
+  - FD
+  - PA
+  - MCC
+  - VFD
+  - UPS
+  - PLC
+  - IP
+  - LP
+  - HP
+  - HMI
+  - HTR
+  - HPU
+  - VLV
+  - PSV
+  - MOV
+
+protected_words:
+  # Words/phrases to preserve with exact casing (title case unless acronym)
+  - Accessory Equipment
+  - Instrument Equipment
+  - Valve Equipment
+  - Indicating Light
+  - Bus Circuit Breaker
+  - Fuse
+  - Heater
+  - Cabinet
+  - Screen
+  - Air Preheater
+  - Sootblower
+
+spaced_letter_fixes:
+  # Regex (ignore-case) -> replacement
+  - pattern: "\\bPres\\s*sure\\b"
+    replacement: "Pressure"
+  - pattern: "\\bPres\\s*s\\b"
+    replacement: "Press"
+  - pattern: "\\bIndicat\\s*ing\\b"
+    replacement: "Indicating"
+  - pattern: "\\bCabin\\s*et\\b"
+    replacement: "Cabinet"
+  - pattern: "\\bCir\\s*cuit\\b"
+    replacement: "Circuit"
+  - pattern: "\\bGen\\s*erator\\b"
+    replacement: "Generator"
+
+directional_context_keywords:
+  # If a single-letter directional appears adjacent to one of these, expansion is allowed
+  - wall
+  - side
+  - area
+  - wing
+  - bay
+  - building
+  - room
+  - door
+  - panel
+  - cabinet
+  - line
+
+directional_expansions:
+  N: North
+  S: South
+  E: East
+  W: West
+
+object_type_map:
+  # Confident expansions for common abbreviations
+  SWCH: Switch
+  HEATR: Heater
+  STRCT: Structure
+  FUSE: Fuse
+  TANK: Tank
+  MISC: Miscellaneous Equipment
+
+# Additional vocabulary and correction rules
+domain_vocab_extra:
+  - Induced Draft Fan
+  - Forced Draft Fan
+  - Primary Air Fan
+  - Variable Speed Drive
+  - Lube Oil
+  - Reservoir
+  - Tank
+  - Pump
+  - Motor
+
+misspellings:
+  # common misspellings or split words to fix after merge
+  - wrong: "Oir"
+    right: "Oil"
+  - wrong: "Resevoir"
+    right: "Reservoir"
+  - wrong: "VaR iable"
+    right: "Variable"
+  - wrong: "Va Riable"
+    right: "Variable"
+  - wrong: "Nd"
+    right: "And"
+
+split_merge_patterns:
+  # Merge tokens that were erroneously split within known words/phrases
+  - pattern: "\\bVa\\s*Riable\\b"
+    replacement: "Variable"
+  - pattern: "\\bVari\\s*able\\b"
+    replacement: "Variable"
+  - pattern: "\\bRe\\s*ser\\s*voir\\b"
+    replacement: "Reservoir"
+  - pattern: "\\bReserve\\s*Oir\\b"
+    replacement: "Reservoir"
+  - pattern: "\\bIn\\s*duced\\b"
+    replacement: "Induced"
+  - pattern: "\\bFor\\s*ced\\b"
+    replacement: "Forced"
+  - pattern: "\\bLu\\s*be\\b"
+    replacement: "Lube"
+  - pattern: "\\bO\\s*il\\b"
+    replacement: "Oil"
+  - pattern: "\\bUni\\s*t\\b"
+    replacement: "Unit"
+  - pattern: "\\bA\\s*Nd\\b"
+    replacement: "And"
+  - pattern: "\\bHeat\\s*Er\\b"
+    replacement: "Heater"
+  - pattern: "\\bLube Oil Reserve Oir\\b"
+    replacement: "Lube Oil Reservoir"
+  - pattern: "\\bVariable Speed D\\b"
+    replacement: "Variable Speed Drive"
+
+anomaly_settings:
+  min_token_count: 3
+  suspect_short_token_max_len: 2
+  watch_tokens:
+    - pump
+    - north
+    - south
+    - east
+    - west
+
+object_context_merge_patterns:
+  Heater:
+    - pattern: "\\bHeat\\s*Er\\b"
+      replacement: "Heater"
+    - pattern: "\\bHea\\s*ter\\b"
+      replacement: "Heater"
+  "Variable Speed Drive":
+    - pattern: "\\bVariable Speed D\\b"
+      replacement: "Variable Speed Drive"

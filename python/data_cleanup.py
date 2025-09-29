@@ -10,8 +10,14 @@ from unidecode import unidecode
 from datetime import datetime
 from typing import List, Dict, Tuple
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'Data_Cleanup')
-OUTPUT_DIR = os.path.join(DATA_DIR, 'output')
+# Determine data and output directories; allow environment overrides for isolation use cases
+_DEFAULT_DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'Data_Cleanup')
+DATA_DIR = os.environ.get('DATA_CLEANUP_DIR') or _DEFAULT_DATA_DIR
+DATA_DIR = os.path.abspath(DATA_DIR)
+
+_DEFAULT_OUTPUT_DIR = os.path.join(DATA_DIR, 'output')
+OUTPUT_DIR = os.environ.get('DATA_CLEANUP_OUTPUT_DIR') or _DEFAULT_OUTPUT_DIR
+OUTPUT_DIR = os.path.abspath(OUTPUT_DIR)
 
 SAMPLE_FILE = os.path.join(DATA_DIR, 'Sample Original Data.csv')
 MAIN_FILE = os.path.join(DATA_DIR, 'Equipment Data.csv')
