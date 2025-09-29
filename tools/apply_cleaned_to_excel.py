@@ -29,21 +29,48 @@ def find_latest_cleaned(output_dir: str) -> Optional[str]:
     return candidates[0]
 
 
-def load_mapping_from_cleaned(cleaned_csv: str) -> Tuple[Dict[str, str], int]:
+def _norm_id(val: object) -> str:
+    s = '' if val is None else str(val).strip()
+    # If looks like a float with .0, strip it
+    if s.endswith('.0') and s.replace('.', '', 1).isdigit():
+        try:
+            s = str(int(float(s)))
+        except Exception:
+            pass
+    # Prefer digit-only normalization when present
+    digits = ''.join(ch for ch in s if ch.isdigit())
+    return digits if digits else s
+
+
+def load_mapping_from_cleaned(cleaned_csv: str, id_col_override: Optional[str] = None, desc_col_override: Optional[str] = None) -> Tuple[Dict[str, str], int]:
     mapping: Dict[str, str] = {}
     total = 0
     with open(cleaned_csv, 'r', encoding='utf-8', newline='') as f:
         reader = csv.DictReader(f)
-        fields = [c.lower() for c in reader.fieldnames or []]
-        # columns
-        id_field = 'sap equipment id'
-        if id_field not in fields and 'equipment number' in fields:
-            id_field = 'equipment number'
-        desc_field = 'equipment description'
+        orig_fields = reader.fieldnames or []
+        fields = [c.lower() for c in orig_fields]
+        # columns (prefer explicit overrides)
+        id_candidates = [
+            (id_col_override or '').lower(),
+            'sap equipment id', 'sap id', 'equipment number', 'equipment no', 'equipment #'
+        ]
+        id_field = next((f for f in id_candidates if f and f in fields), None)
+        if not id_field:
+            # fallback: try contains checks
+            id_field = next((f for f in fields if 'sap' in f and 'id' in f), None)
+        desc_candidates = [
+            (desc_col_override or '').lower(),
+            'equipment description', 'description'
+        ]
+        desc_field = next((f for f in desc_candidates if f and f in fields), None)
+        if not desc_field:
+            desc_field = next((f for f in fields if 'description' in f), None)
         for row in reader:
-            rid = (row.get(id_field) or '').strip()
+            # Access row values case-insensitively
+            lower_row = { (k or '').lower(): (v or '') for k, v in row.items() }
+            rid = (lower_row.get(id_field or '') or '').strip()
             if rid:
-                mapping[rid] = row.get(desc_field) or ''
+                mapping[_norm_id(rid)] = (lower_row.get(desc_field or '') or '') if desc_field else ''
                 total += 1
     return mapping, total
 
@@ -53,22 +80,24 @@ def apply_to_excel(workbook_path: str, mapping: Dict[str, str], visible: bool = 
     pythoncom.CoInitialize()
     app = None
     try:
-        try:
-            app = win32com.client.GetActiveObject("Excel.Application")
-            if debug:
-                print("Connected to existing Excel instance")
-        except Exception:
-            app = win32com.client.Dispatch("Excel.Application")
-            if debug:
-                print("Created new Excel instance")
+        # Create a fresh Excel instance to avoid cross-process property issues
+        app = win32com.client.DispatchEx("Excel.Application")
+        if debug:
+            print("Created new Excel instance")
         try:
             app.AutomationSecurity = 1
         except Exception:
             pass
-        app.Visible = visible
-        app.DisplayAlerts = False
-
+        # Open workbook before toggling visibility to avoid some COM quirks
         wb = app.Workbooks.Open(os.path.abspath(workbook_path))
+        try:
+            app.Visible = bool(visible)
+        except Exception:
+            pass
+        try:
+            app.DisplayAlerts = False
+        except Exception:
+            pass
         if debug:
             print(f"Opened workbook: {wb.FullName}")
 
@@ -100,10 +129,27 @@ def apply_to_excel(workbook_path: str, mapping: Dict[str, str], visible: bool = 
                     return i
             return 0
 
-        id_col = hidx('SAP Equipment ID') or hidx('Equipment Number')
-        desc_col = hidx('Equipment Description')
+        # Flexible header resolution
+        def resolve_idx(options):
+            for opt in options:
+                idx = hidx(opt)
+                if idx:
+                    return idx
+            # contains fallback
+            for i, h in enumerate(headers, start=1):
+                hl = h.lower()
+                if any(tok in hl for tok in options[0].lower().split()):
+                    return i
+            return 0
+
+        id_col = resolve_idx(['SAP Equipment ID', 'SAP ID', 'Equipment Number', 'Equipment No', 'Equipment #'])
+        desc_col = resolve_idx(['Equipment Description', 'Description'])
         if id_col == 0 or desc_col == 0:
-            raise RuntimeError("Required columns not found: SAP Equipment ID/Equipment Number and Equipment Description")
+            if debug:
+                print("Headers detected:")
+                for i, h in enumerate(headers, start=1):
+                    print(f"  {i}: {h}")
+            raise RuntimeError("Required columns not found: need an ID column (SAP Equipment ID/SAP ID/Equipment Number) and Equipment Description")
 
         rng = data_lo.DataBodyRange
         values = rng.Value  # 2D tuple (rows x cols in table)
@@ -116,7 +162,7 @@ def apply_to_excel(workbook_path: str, mapping: Dict[str, str], visible: bool = 
         new_values = [list(row) for row in values]
 
         for r in range(total_rows):
-            rid = str(new_values[r][id_col - 1]).strip()
+            rid = _norm_id(new_values[r][id_col - 1])
             if not rid or rid == 'None':
                 continue
             new_desc = mapping.get(rid)
