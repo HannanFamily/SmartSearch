@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_DashboardInterface"
+'Attribute VB_Name = "mod_DashboardInterface"  ' commented for copy/paste
 '============================================================
 ' DASHBOARD INTERFACE - Search Integration
 '============================================================

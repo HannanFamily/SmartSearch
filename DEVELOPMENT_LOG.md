@@ -176,3 +176,66 @@ End Type
 - Never assume or invent data structure or values; always extract from project metadata or user-provided samples.
 - Document every step, correction, and lesson in the development log for full traceability.
 - Python simulation is only valid if it matches the real Excel table structure exactly.
+
+---
+
+## Date: 2025-10-06
+
+### Context / Objective
+- Establish a stable baseline after resolving compile-time ambiguity and improving configuration reliability.
+- User requested: capture session history, summarize changes, declare new baseline, and push.
+
+### Major Changes Implemented
+1. **Eliminated Ambiguous Public Symbols**
+   - Demoted duplicate public functions (`DataTableName`, `MappingTableName`, `GetConfigValue`, and others) in `mod_PrimaryConsolidatedModule3.bas` to `Private`.
+   - Ensured canonical public accessors now live solely in `mod_SearchEngine_Enhanced.bas`.
+2. **Configuration Cache Added**
+   - Introduced in-memory dictionary cache (`EnsureConfigCache`, `GetConfigValueCached`, `RefreshConfigCache`) with timed auto-refresh to reduce repeated ConfigTable scans.
+   - Updated all high-level getters (table names, dashboard name, pulse anchor, temp filter column, input readers, long-safe retrieval) to use cached access.
+3. **Reliability & Diagnostics**
+   - Cache gracefully falls back to legacy row-scan `GetConfigValue` if cache initialization fails.
+   - DiagnosticMode integration preserved; cache loading logs key count when enabled.
+4. **Mapping Cleanup Integrity**
+   - Confirmed `mod_MappingCleanup.bas` uses fully-qualified references (`mod_SearchEngine_Enhanced`), preventing reintroduction of ambiguity.
+
+### Problems / Errors Encountered & Solutions
+| Problem | Impact | Cause | Solution |
+|---------|--------|-------|----------|
+| Ambiguous name detected (compile) | Build blocked | Duplicate public functions across legacy + enhanced modules | Legacy functions demoted to `Private` |
+| Repeated ConfigTable scans | Performance risk, potential inconsistency | Each getter iterated table rows | Added cached dictionary with periodic refresh |
+| Potential future DiagnosticMode collision | Risk of ambiguous variable | Multiple modules referencing debug flag | Centralized canonical usage and qualified references |
+| Prior state mgmt vars missing in cleanup (prev session) | Compile errors | Undeclared module-level preservation vars | Added `mPrevScreenUpdating`, `mPrevEnableEvents`, `mPrevCalc` |
+
+### Current Functional State
+- Search engine: Lives in enhanced module (full logic + synonym search + gating + temp filter + output sorting).
+- Legacy module: Retained only for historical compatibility; now non-interfering due to private scope.
+- Config access: Centralized, cache-backed, resilient fallbacks.
+- Mapping cleanup: Operational with optional word index acceleration and presence flagging/deletion.
+- Error handling: Enhanced module retains structured diagnostic prints and status updates.
+
+### Files Modified Today
+- `VBA_Export/mod_PrimaryConsolidatedModule3.bas` (visibility demotions)
+- `Active Files/mod_SearchEngine_Enhanced.bas` (config cache & getter refactors)
+- Added session summary file: `SESSION_HISTORY_2025-10-06.md` (full narrative of changes)
+
+### Technical Notes
+- Cache reload interval: 5 seconds (tunable constant) — balances responsiveness vs overhead.
+- Fallback ensures zero functional regression if ConfigTable temporarily unavailable.
+- Demotion strategy chosen over renaming to minimize refactor blast radius.
+
+### Risks / Considerations
+- Legacy consolidated module still present; accidental future edits could reintroduce public functions unless policy enforced.
+- Mode-driven scaffold (`mod_SearchEngineCore.bas`) currently placeholder; divergence between scaffold and active engine expected until migration.
+- No automated test harness yet for config cache parity vs raw scan.
+
+### Recommended Next Steps
+1. Optionally mark legacy module with `Option Private Module` or retire after confirming no external dependencies.
+2. Migrate enhanced runtime logic into `mod_SearchEngineCore` if pursuing full mode-driven future.
+3. Add a lightweight self-test routine: compare cached vs direct scan for N random keys.
+4. Implement deletion audit log for mapping cleanup (counts & removed terms snapshot).
+5. Encapsulate `DiagnosticMode` via `Property Get/Let` for stricter governance.
+
+### Baseline Declaration
+This state (post-ambiguity resolution + config cache integration) is declared the new baseline as of 2025-10-06 per user directive.
+
+---

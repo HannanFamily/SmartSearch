@@ -1,4 +1,4 @@
-Attribute VB_Name = "Diagnostic"
+'Attribute VB_Name = "Diagnostic"  ' commented for copy/paste
 Public Sub DiagnosticTrace_PerformSearch()
     Dim wsDiag As Worksheet
     Dim NextRow As Long

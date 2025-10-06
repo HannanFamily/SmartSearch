@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_PrimaryConsolidatedModule3"
+'Attribute VB_Name = "mod_PrimaryConsolidatedModule3"  ' commented for copy/paste
 Option Explicit
 
 '''Attribute VB_Name = "mod_PrimaryConsolidatedModule"
@@ -74,7 +74,7 @@ Public gBusy As Boolean
 
 
 '=============================================
-' Smart Search vNext — slicer-aware gating & dynamic inputs
+' Smart Search vNext ï¿½ slicer-aware gating & dynamic inputs
 ' Date: 2025-10-05
 '=============================================
 '
@@ -120,12 +120,12 @@ Public gBusy As Boolean
 '       you set SLICER_PULSE_ANCHOR to). It can point to any hidden cell; code will populate it.
 '
 ' ========================================================================================
-'  MODULE: mod_PrimaryConsolidatedModule — NEW / UPDATED MEMBERS
+'  MODULE: mod_PrimaryConsolidatedModule ï¿½ NEW / UPDATED MEMBERS
 ' ========================================================================================
 
 
 ' -------------------------------------------------------
-' UPDATED: PerformSearch — now also filters the DataTable
+' UPDATED: PerformSearch ï¿½ now also filters the DataTable
 ' -------------------------------------------------------
 
 
@@ -141,13 +141,13 @@ Public Function DashboardName() As String
     DashboardName = v
 End Function
 
-Public Function DataTableName() As String
+Private Function DataTableName() As String ' Demoted to Private; canonical public version in mod_SearchEngine_Enhanced
     Dim v As String: v = GetConfigValue(CFG_DATA_TABLE_NAME)
     If Len(Trim$(v)) = 0 Then v = "EquipmentData"
     DataTableName = v
 End Function
 
-Public Function MappingTableName() As String
+Private Function MappingTableName() As String ' Demoted to Private; canonical public version in mod_SearchEngine_Enhanced
     Dim v As String: v = GetConfigValue(CFG_MAPPING_TABLE_NAME)
     If Len(Trim$(v)) = 0 Then v = "tbl_Mapping"
     MappingTableName = v
@@ -249,7 +249,7 @@ End Function
 
 
 ' ---------------------------------------------------------------
-' SECTION 5 — Temp search filter (helper column in DataTable)
+' SECTION 5 ï¿½ Temp search filter (helper column in DataTable)
 ' ---------------------------------------------------------------
 Public Sub ClearTempSearchFilter()
     ' Removes the temporary search helper column (if present) so slicers return to normal-only filtering.
@@ -313,7 +313,7 @@ End Sub
 
 
 ' -------------------------------------------------------------
-' SECTION 6 — Slicer pulse (no hardcoded addresses anymore)
+' SECTION 6 ï¿½ Slicer pulse (no hardcoded addresses anymore)
 ' -------------------------------------------------------------
 Public Sub EnsurePulseCell_Run() 'For manual testing
     EnsurePulseCell True
@@ -371,7 +371,7 @@ End Sub
 
 
 ' -------------------------------------------------------------
-' SECTION 7 — Gating: when to show vs hide results
+' SECTION 7 ï¿½ Gating: when to show vs hide results
 ' -------------------------------------------------------------
 Public Sub RefreshResults()
 Dim TempDiagToggle As Boolean
@@ -811,7 +811,7 @@ ByVal idx1 As Long, ByVal idx2 As Long, ByVal idx3 As Long) As Boolean
     End If
 End Function
 
-Public Function lo(ByVal name As String) As ListObject
+Private Function lo(ByVal name As String) As ListObject
     Dim ws As Worksheet, l As ListObject
     For Each ws In ThisWorkbook.Worksheets
         For Each l In ws.ListObjects
@@ -820,12 +820,12 @@ Public Function lo(ByVal name As String) As ListObject
     Next ws
 End Function
 
-Public Function nr(ByVal nm As String) As Range
+Private Function nr(ByVal nm As String) As Range
     On Error Resume Next
     Set nr = ThisWorkbook.Names(nm).RefersToRange
 End Function
 
-Public Function SheetByName(ByVal nm As String) As Worksheet
+Private Function SheetByName(ByVal nm As String) As Worksheet
     On Error Resume Next
     Set SheetByName = ThisWorkbook.Worksheets(nm)
 End Function
@@ -840,11 +840,11 @@ Public Function ReadLeftCell(ByVal nm As String) As String
     If Not rng Is Nothing Then ReadLeftCell = CStr(rng.Cells(1, 1).Value)
 End Function
 
-Public Function SafeCellText(ByVal v As Variant) As String
+Private Function SafeCellText(ByVal v As Variant) As String
     If IsError(v) Then SafeCellText = "" Else SafeCellText = CStr(v)
 End Function
 
-Public Function HeaderIndexByText(ByVal dataLo As ListObject, ByVal headerText As String) As Long
+Private Function HeaderIndexByText(ByVal dataLo As ListObject, ByVal headerText As String) As Long
     Dim i As Long
     If dataLo Is Nothing Then Exit Function
     If Len(Trim$(headerText)) = 0 Then Exit Function
@@ -865,7 +865,7 @@ Public Sub WriteHeaders(ByVal startCell As Range, ByVal dataLo As ListObject, _
     startCell.Resize(1, 3).Value = hdr
 End Sub
 
-Public Sub ClearOldResults(ByVal startCell As Range, Optional ByVal colCount As Long = 3)
+Private Sub ClearOldResults(ByVal startCell As Range, Optional ByVal colCount As Long = 3)
     startCell.Offset(1, 0).Resize(100000, colCount).ClearContents
 End Sub
 
@@ -1289,7 +1289,7 @@ End Function
 '============================================================
 ' CONFIG ACCESS (from ConfigSheet/ConfigTable)
 '============================================================
-Public Function GetConfigValue(ByVal key As String) As String
+Private Function GetConfigValue(ByVal key As String) As String ' Demoted to Private; canonical public version in mod_SearchEngine_Enhanced
     Dim ws As Worksheet, loCfg As ListObject, r As Range
     On Error Resume Next
     Set ws = ThisWorkbook.Worksheets("ConfigSheet")

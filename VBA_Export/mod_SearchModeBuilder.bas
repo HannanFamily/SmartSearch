@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_SearchModeBuilder"
+'Attribute VB_Name = "mod_SearchModeBuilder"  ' commented for copy/paste
 '============================================================
 ' SEARCH MODE BUILDER - Easy Mode Management
 '============================================================

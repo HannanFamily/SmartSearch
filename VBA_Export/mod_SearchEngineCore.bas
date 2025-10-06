@@ -1,12 +1,11 @@
-Attribute VB_Name = "mod_SearchEngineCore"
-'Attribute VB_Name = "mod_SearchEngineCore"  ' Commented out for manual copy/paste convenience
+'Attribute VB_Name = "mod_SearchEngineCore"  ' commented for copy/paste portability
 Option Explicit
 
 ' ============================================================================
 ' Module:        mod_SearchEngineCore (Scaffolding Version)
 ' Purpose:       Provide a clean, testable, extensible core API surface for the
 '                dashboard search system. This is a REPLACEMENT / IMPROVEMENT
-'                scaffold – NOT final until we ingest & review existing logic.
+'                scaffold ï¿½ NOT final until we ingest & review existing logic.
 ' ----------------------------------------------------------------------------
 ' IMPORTANT:     Real implementation will be filled in AFTER we export and
 '                analyze current project code + ModeConfigTable structure.
@@ -294,5 +293,147 @@ End Function
 ' ============================================================================
 ' End of module (scaffolding)
 ' ============================================================================
+
+Public Sub RefreshResults_Enhanced()
+    ' Dashboard-compatible refresh logic: checks for active inputs, slicer pulse, and outputs results
+    On Error GoTo CleanExit
+    Static gBusy As Boolean
+    If gBusy Then Exit Sub
+    gBusy = True
+
+    ' Ensure slicer pulse cell exists (if you have a helper, call it here)
+    If IsEmpty(ThisWorkbook.Names("SlicerPulseCell")) Then
+        ' Optionally create or validate pulse cell here
+    End If
+
+    Dim anyActive As Boolean: anyActive = IsAnySearchInputActive()
+    Dim pulseVal As Long: pulseVal = 0
+    On Error Resume Next
+    pulseVal = CLng(ThisWorkbook.Names("SlicerPulseCell").RefersToRange.Value)
+    On Error GoTo 0
+    Dim pulseOk As Boolean: pulseOk = (pulseVal > 0)
+
+    If anyActive Then
+        ' Search-driven: filter and output
+        ' If you have a PerformSearch routine, call it here
+        ' For now, call RefreshAllVisible as a placeholder
+        Call RefreshAllVisible
+    ElseIf pulseOk Then
+        ' Slicer-driven: clear temp filter and show visible
+        If Not IsEmpty(ThisWorkbook.Names("TempSearchFilterCol")) Then
+            ' Optionally clear temp filter here
+        End If
+        Call RefreshAllVisible
+    Else
+        ' Default: headers only or no results
+        ' Optionally clear temp filter and output no results
+        Call RefreshAllVisible
+    End If
+CleanExit:
+    gBusy = False
+End Sub
+
+' Legacy wrapper: allow existing code calling RefreshResults (without _Enhanced)
+' to continue working until all references are migrated.
+Public Sub RefreshResults()
+    RefreshResults_Enhanced
+End Sub
+
+Public Function AllInputNamedRanges_Enhanced() As Collection
+    Dim c As New Collection
+    Dim ws As Worksheet, loCfg As ListObject, r As Range
+    Dim nmKey As String, nmType As String
+    On Error GoTo Done
+    
+    Set ws = ThisWorkbook.Worksheets("ConfigSheet")
+    Set loCfg = ws.ListObjects("ConfigTable")
+    If loCfg Is Nothing Or loCfg.DataBodyRange Is Nothing Then GoTo Done
+
+    For Each r In loCfg.DataBodyRange.Rows
+        nmKey = Trim$(CStr(r.Cells(1, 2).Value))   ' column B: ConfigValue (the NAME of the range)
+        nmType = Trim$(CStr(r.Cells(1, 3).Value))  ' column C: TYPE
+        If StrComp(nmType, "Input Named Range", vbTextCompare) = 0 Then
+            Dim nrng As Range
+            On Error Resume Next
+            Set nrng = ThisWorkbook.Names(nmKey).RefersToRange
+            On Error GoTo 0
+            If Not nrng Is Nothing Then c.Add nrng
+        End If
+    Next r
+Done:
+    Set AllInputNamedRanges_Enhanced = c
+End Function
+
+' ---------------------------------------------------------------
+' Added compatibility helpers migrated from earlier consolidated module
+' to satisfy Dashboard sheet calls without re-importing legacy modules.
+' ---------------------------------------------------------------
+Public Sub EnsurePulseCell(Optional ByVal resetValue As Boolean = False)
+    ' Ensures a named range "SlicerPulseCell" exists (used as a pulse / change trigger)
+    ' If present and resetValue=True, increments its value to force downstream refresh logic.
+    On Error GoTo CleanExit
+    Dim r As Range
+    On Error Resume Next
+    Set r = ThisWorkbook.Names("SlicerPulseCell").RefersToRange
+    On Error GoTo 0
+    If r Is Nothing Then
+        ' Create a safe placeholder location (far out of normal view) on active sheet.
+        Dim host As Worksheet
+        If ActiveSheet Is Nothing Then
+            Set host = ThisWorkbook.Worksheets(1)
+        Else
+            Set host = ActiveSheet
+        End If
+        Set r = host.Range("Z100") ' unobtrusive cell
+        On Error Resume Next
+        ThisWorkbook.Names.Add Name:="SlicerPulseCell", RefersTo:=r
+        On Error GoTo 0
+    End If
+    If Not r Is Nothing Then
+        If resetValue Then
+            Dim v As Variant
+            v = 0
+            On Error Resume Next
+            If IsNumeric(r.Value) Then v = CLng(r.Value)
+            r.Value = v + 1
+            On Error GoTo 0
+        End If
+    End If
+CleanExit:
+End Sub
+
+Public Sub ClearTempSearchFilter()
+    ' Attempts to remove any temporary helper column used for search filtering
+    ' (heuristic: column name contains "temp" AND "search" AND "filter").
+    On Error Resume Next
+    Dim ws As Worksheet, lo As ListObject, lc As ListColumn
+    For Each ws In ThisWorkbook.Worksheets
+        For Each lo In ws.ListObjects
+            For Each lc In lo.ListColumns
+                Dim nm As String
+                nm = LCase$(lc.Name)
+                If (InStr(nm, "temp") > 0) And (InStr(nm, "search") > 0) And (InStr(nm, "filter") > 0) Then
+                    lc.Delete
+                    Exit Sub
+                End If
+            Next lc
+        Next lo
+    Next ws
+End Sub
+
+Public Function IsAnySearchInputActive() As Boolean
+    ' Returns True if any discovered input named range has a non-empty trimmed value.
+    Dim coll As Collection: Set coll = AllInputNamedRanges_Enhanced()
+    Dim i As Long, r As Range
+    For i = 1 To coll.Count
+        Set r = coll(i)
+        If Not r Is Nothing Then
+            If Len(Trim$(CStr(r.Cells(1, 1).Value))) > 0 Then
+                IsAnySearchInputActive = True
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
 
 

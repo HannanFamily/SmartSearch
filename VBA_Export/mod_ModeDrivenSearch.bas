@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_ModeDrivenSearch"
+'Attribute VB_Name = "mod_ModeDrivenSearch"  ' commented for copy/paste
 '============================================================
 ' ModeDrivenSearch.bas
 ' Core logic for mode-driven search and output, using ModeConfig table

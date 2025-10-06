@@ -1,4 +1,4 @@
-Attribute VB_Name = "ModeStart"
+'Attribute VB_Name = "ModeStart"  ' commented for copy/paste
 ' =====================================================================================
 ' Handler: Search_SootblowerLocation
 ' Purpose: Filters equipment records by search term and sootblower location

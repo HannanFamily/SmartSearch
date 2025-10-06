@@ -1,4 +1,4 @@
-Attribute VB_Name = "DevTools"
+'Attribute VB_Name = "DevTools"  ' commented for copy/paste
 
 '============================================================
 ' UTILITIES (misc dev helpers)

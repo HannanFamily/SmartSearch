@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_VBAExportUtility"
+'Attribute VB_Name = "mod_VBAExportUtility"  ' commented for copy/paste
 'Attribute VB_Name = "mod_VBAExportUtility"  ' Commented out for manual copy/paste convenience
 Option Explicit
 
@@ -48,7 +48,7 @@ Public Sub ExportAllVba(Optional ByVal TargetPath As String = "")
         TargetPath = wb.path
     End If
     If Len(TargetPath) = 0 Then
-        Err.Raise vbObjectError + 513, , "Workbook not saved yet – cannot derive export path. Please save the workbook first."
+        Err.Raise vbObjectError + 513, , "Workbook not saved yet ï¿½ cannot derive export path. Please save the workbook first."
     End If
 
     If Right$(TargetPath, 1) <> Application.PathSeparator Then

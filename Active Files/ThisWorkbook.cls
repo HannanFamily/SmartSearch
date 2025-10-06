@@ -2,7 +2,7 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "ThisWorkbook"
+'Attribute VB_Name = "ThisWorkbook"  ' commented for export
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -47,24 +47,35 @@ Done:
 End Sub
 
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
-    Cancel = True ' Cancel the default close behavior
-
-    Application.ScreenUpdating = False
-    Application.ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"", True)"
+    ' Unified close behavior: discard changes silently (no prompt) and restore UI.
+    ' We do NOT cancel unless UI restoration fails; we mark Saved=True so Excel skips the save prompt.
+    On Error GoTo FailClose
+    Call WBInternal_RestoreUI
+    ThisWorkbook.Saved = True          ' Discard edits silently
+    Exit Sub                           ' Allow Excel to proceed with close
+FailClose:
+    ' If something unexpected happened, allow close but still suppress prompt.
     ThisWorkbook.Saved = True
-    Application.DisplayAlerts = False
+End Sub
 
-    ' Reset UI elements
-    ActiveWindow.DisplayHeadings = True
-    Application.DisplayFormulaBar = True
+Public Sub Button_Exit_NoPrompt()
+    ' Can be assigned to a shape/button: performs same discard+close logic intentionally.
+    On Error GoTo Done
+    Application.EnableEvents = False   ' Prevent double firing of Workbook_BeforeClose logic
+    Call WBInternal_RestoreUI
+    ThisWorkbook.Saved = True          ' Discard changes
+    ThisWorkbook.Close SaveChanges:=False
+Done:
+    On Error Resume Next
+    Application.EnableEvents = True
+End Sub
+
+Private Sub WBInternal_RestoreUI()
+    On Error Resume Next
+    Application.ExecuteExcel4Macro "SHOW.TOOLBAR(\"Ribbon\", True)"
     Application.DisplayFullScreen = False
-    'CommandBars.ExecuteMso "HideRibbon"
-
-    Application.DisplayAlerts = True
-    Application.ScreenUpdating = True
-   ThisWorkbook.Saved = True
-    ' Now close the workbook manually
-    'CloseWorkbookWithoutPrompt
+    Application.DisplayFormulaBar = True
+    If Not ActiveWindow Is Nothing Then ActiveWindow.DisplayHeadings = True
 End Sub
 
 

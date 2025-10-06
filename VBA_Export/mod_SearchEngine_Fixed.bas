@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_SearchEngine_Fixed"
+'Attribute VB_Name = "mod_SearchEngine_Fixed"  ' commented for copy/paste
 '============================================================
 ' SMART SEARCH ENGINE (Consolidated & Fixed)
 '============================================================

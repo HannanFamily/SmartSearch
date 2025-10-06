@@ -29,6 +29,75 @@ Private Const CFG_RESULTS_START        As String = "ResultsStartCell"
 Private Const CFG_STATUS_CELL          As String = "StatusCell"
 Private Const CFG_DATA_DESC_COL        As String = "DataTable_EquipDescription"
 
+' ============================================================
+' CONFIG CACHE (New)
+' ------------------------------------------------------------
+' Purpose: Centralize retrieval of ConfigTable values and avoid repeated
+'          full-table scans. Ensures stable, reliable access even if
+'          legacy modules contain shadowed/private versions. Provides
+'          a single canonical storage for downstream routines.
+' ------------------------------------------------------------
+Private mConfigCache As Object          ' Scripting.Dictionary (key -> value)
+Private mConfigLastLoad As Double       ' Timer value when last loaded
+Private Const CONFIG_RELOAD_INTERVAL As Double = 5 ' seconds; lightweight auto-refresh window
+
+Private Sub EnsureConfigCache(Optional forceReload As Boolean = False)
+    On Error GoTo Failed
+    Dim needsReload As Boolean
+    If mConfigCache Is Nothing Then
+        needsReload = True
+    ElseIf forceReload Then
+        needsReload = True
+    ElseIf (Timer - mConfigLastLoad) > CONFIG_RELOAD_INTERVAL Then
+        ' Lightweight periodic refresh in case user edits ConfigTable during session
+        needsReload = True
+    End If
+    If Not needsReload Then Exit Sub
+
+    Dim ws As Worksheet, loCfg As ListObject, r As Range
+    Set mConfigCache = CreateObject("Scripting.Dictionary")
+    mConfigCache.CompareMode = vbTextCompare
+    Set ws = ThisWorkbook.Worksheets("ConfigSheet")
+    On Error Resume Next
+    Set loCfg = ws.ListObjects("ConfigTable")
+    On Error GoTo Failed
+    If loCfg Is Nothing Or loCfg.DataBodyRange Is Nothing Then Exit Sub
+    For Each r In loCfg.DataBodyRange.Rows
+        Dim k As String, v As String
+        k = Trim(CStr(r.Cells(1, 1).Value))   ' Column A = ConfigKey
+        If Len(k) > 0 Then
+            v = CStr(r.Cells(1, 2).Value)     ' Column B = ConfigValue
+            If Not mConfigCache.exists(k) Then mConfigCache.Add k, v Else mConfigCache(k) = v
+        End If
+    Next r
+    mConfigLastLoad = Timer
+    If DiagnosticMode Then Debug.Print "[DIAG] Config cache loaded. Keys=" & mConfigCache.Count
+    Exit Sub
+Failed:
+    If DiagnosticMode Then Debug.Print "[DIAG][WARN] EnsureConfigCache failed: " & Err.Number & " - " & Err.Description
+End Sub
+
+Public Sub RefreshConfigCache()
+    ' Manual hard reload (e.g., after user edits configuration intentionally)
+    EnsureConfigCache True
+End Sub
+
+Public Function GetConfigValueCached(ByVal key As String) As String
+    ' Preferred accessor used by higher-level getters (DataTableName, etc.)
+    ' Falls back to legacy GetConfigValue for resilience if cache not available.
+    On Error GoTo Fallback
+    EnsureConfigCache False
+    If Not mConfigCache Is Nothing Then
+        If mConfigCache.exists(key) Then
+            GetConfigValueCached = CStr(mConfigCache(key))
+            Exit Function
+        End If
+    End If
+Fallback:
+    ' Fallback path (single scan) retains backward compatibility
+    GetConfigValueCached = GetConfigValue(key)
+End Function
+
 ' Search Engine Constants
 Public Const TAG_SEARCH_MIN_LEN As Long = 3
 
@@ -270,10 +339,12 @@ Public Sub PerformSearch()
     Dim outArr() As Variant: ReDim outArr(1 To cap, 1 To colCount)
     For i = 1 To cap
         ri = idxs(i)
+        Dim rowVals As String: rowVals = ""
         For j = 1 To colCount
             outArr(i, j) = SafeCellText(dataLo.DataBodyRange.Cells(ri, outCols(j)).Value)
+            If i <= 5 And j <= 5 Then rowVals = rowVals & "|" & outArr(i, j)
         Next j
-        If DiagnosticMode Then Debug.Print "[DIAG] Output row " & i & ": " & Join(Application.WorksheetFunction.Transpose(Application.WorksheetFunction.Transpose(outArr(i, 1))), ", ")
+        If DiagnosticMode And i <= 5 Then Debug.Print "[DIAG] Build outArr Row " & i & ": " & rowVals
     Next i
 
     ' Sort result array by description column if present among outputs
@@ -298,15 +369,27 @@ Private Sub DebugSafeArrayAssignment(ByVal resultsStart As Range, ByRef outArr A
     On Error Resume Next
     Set tgtRng = resultsStart.Offset(1, 0).Resize(cap, colCount)
     On Error GoTo 0
-    ' Force outArr to be a true 2D array for single-column output
-    If colCount = 1 Then
-        Dim arr2D() As Variant: ReDim arr2D(1 To cap, 1 To 1)
-        Dim ii As Long
-        For ii = 1 To cap
-            arr2D(ii, 1) = outArr(ii, 1)
+    ' Force outArr to be a true 2D Variant array for all cases
+    Dim arr2D() As Variant
+    Dim ii As Long, jj As Long
+    ReDim arr2D(1 To cap, 1 To colCount)
+    For ii = 1 To cap
+        For jj = 1 To colCount
+            arr2D(ii, jj) = outArr(ii, jj)
+        Next jj
+    Next ii
+    outArr = arr2D
+    If DiagnosticMode Then Debug.Print "[DIAG] Forced 2D Variant array for output assignment."
+    ' Diagnostic: Print type and contents of outArr before assignment
+    If DiagnosticMode Then
+        Debug.Print "[DIAG] outArr TypeName before assignment: " & TypeName(outArr)
+        For ii = 1 To WorksheetFunction.Min(5, cap)
+            Dim rowVals2 As String: rowVals2 = ""
+            For jj = 1 To WorksheetFunction.Min(5, colCount)
+                rowVals2 = rowVals2 & "|" & outArr(ii, jj)
+            Next jj
+            Debug.Print "[DIAG] Pre-assign Row " & ii & ": " & rowVals2
         Next ii
-        outArr = arr2D
-        If DiagnosticMode Then Debug.Print "[DIAG] Forced 2D array for colCount=1."
     End If
     If DiagnosticMode Then
         Debug.Print "[DIAG] --- DebugSafeArrayAssignment ---"
@@ -338,6 +421,18 @@ Private Sub DebugSafeArrayAssignment(ByVal resultsStart As Range, ByRef outArr A
     On Error GoTo ArrayAssignErr
     tgtRng.Value = outArr
     If DiagnosticMode Then Debug.Print "[DIAG] Array assignment succeeded."
+    ' Diagnostic: Print first 5 rows of output range after assignment
+    If DiagnosticMode Then
+        Dim rDiag As Long, cDiag As Long
+        Debug.Print "[DIAG] Output range values after assignment:"
+        For rDiag = 1 To WorksheetFunction.Min(5, tgtRng.Rows.Count)
+            Dim rowVals As String: rowVals = ""
+            For cDiag = 1 To WorksheetFunction.Min(5, tgtRng.Columns.Count)
+                rowVals = rowVals & "|" & tgtRng.Cells(rDiag, cDiag).Text
+            Next cDiag
+            Debug.Print "[DIAG] Row " & rDiag & ": " & rowVals
+        Next rDiag
+    End If
     Exit Sub
 ArrayAssignErr:
     If DiagnosticMode Then Debug.Print "[DIAG] ERROR assigning output array: " & Err.Number & " - " & Err.Description
@@ -507,19 +602,19 @@ End Sub
 ' ============================================================
 
 Public Function DashboardName() As String
-    Dim v As String: v = GetConfigValue(CFG_DASHBOARD_SHEET)
+    Dim v As String: v = GetConfigValueCached(CFG_DASHBOARD_SHEET)
     If Len(Trim(v)) = 0 Then v = "Dashboard"
     DashboardName = v
 End Function
 
 Public Function DataTableName() As String
-    Dim v As String: v = GetConfigValue(CFG_DATA_TABLE_NAME)
+    Dim v As String: v = GetConfigValueCached(CFG_DATA_TABLE_NAME)
     If Len(Trim(v)) = 0 Then v = "EquipmentData"
     DataTableName = v
 End Function
 
 Public Function MappingTableName() As String
-    Dim v As String: v = GetConfigValue(CFG_MAPPING_TABLE_NAME)
+    Dim v As String: v = GetConfigValueCached(CFG_MAPPING_TABLE_NAME)
     If Len(Trim(v)) = 0 Then v = "tbl_Mapping"
     MappingTableName = v
 End Function
@@ -529,13 +624,13 @@ Public Function SlicerThreshold() As Long
 End Function
 
 Public Function TempFilterColName() As String
-    Dim v As String: v = GetConfigValue(CFG_TEMP_FILTER_COL_NAME)
+    Dim v As String: v = GetConfigValueCached(CFG_TEMP_FILTER_COL_NAME)
     If Len(Trim(v)) = 0 Then v = "Temp_SearchInclude"
     TempFilterColName = v
 End Function
 
 Public Function SlicerPulseAnchorName() As String
-    Dim v As String: v = GetConfigValue(CFG_SLICER_PULSE_ANCHOR)
+    Dim v As String: v = GetConfigValueCached(CFG_SLICER_PULSE_ANCHOR)
     If Len(Trim(v)) = 0 Then v = "SlicerPulseAnchor"
     SlicerPulseAnchorName = v
 End Function
@@ -553,7 +648,7 @@ Public Function DataDescConfigKey() As String
 End Function
 
 Public Function GetConfigLongSafe(ByVal key As String, ByVal defVal As Long) As Long
-    Dim s As String: s = GetConfigValue(key)
+    Dim s As String: s = GetConfigValueCached(key)
     If Len(Trim(s)) = 0 Then
         GetConfigLongSafe = defVal
     Else
@@ -603,11 +698,11 @@ Public Function IsAnySearchInputActive() As Boolean
 End Function
 
 Public Function ReadSearchText_Description() As String
-    ReadSearchText_Description = ReadLeftCell(GetConfigValue(CFG_INPUT_DESCRIP))
+    ReadSearchText_Description = ReadLeftCell(GetConfigValueCached(CFG_INPUT_DESCRIP))
 End Function
 
 Public Function ReadSearchText_Valve() As String
-    ReadSearchText_Valve = ReadLeftCell(GetConfigValue(CFG_INPUT_VALVE))
+    ReadSearchText_Valve = ReadLeftCell(GetConfigValueCached(CFG_INPUT_VALVE))
 End Function
 
 ' Compatibility functions for external modules
@@ -855,6 +950,7 @@ Public Function HeaderIndexByText(ByVal dataLo As ListObject, ByVal headerText A
 End Function
 
 Public Sub ClearOldResults(ByVal startCell As Range, Optional ByVal colCount As Long = 3)
+    If DiagnosticMode Then Debug.Print "[DIAG] ClearOldResults called for " & startCell.Address & " cols=" & colCount
     startCell.Offset(1, 0).Resize(100000, colCount).ClearContents
 End Sub
 
@@ -1060,7 +1156,7 @@ End Function
 
 Public Function GetColumnIndex(ByVal configKey As String, ByVal dataLo As ListObject) As Long
     Dim headerName As String
-    headerName = GetConfigValue(configKey)
+    headerName = GetConfigValueCached(configKey)
     If Len(Trim(headerName)) = 0 Then Exit Function
     GetColumnIndex = HeaderIndexByText(dataLo, headerName)
 End Function
@@ -1073,6 +1169,7 @@ Public Sub ClearFilters_Enhanced()
     Dim ws As Worksheet
     Dim tbl As ListObject
     Call ClearSearchBoxes
+    Call ClearTempSearchFilter
     For Each ws In ThisWorkbook.Worksheets
         For Each tbl In ws.ListObjects
             If StrComp(tbl.Name, DataTableName(), vbTextCompare) = 0 Then

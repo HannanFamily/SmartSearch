@@ -1,0 +1,55 @@
+=========================================
+WORKBOOK METADATA SNAPSHOT & COLUMN VALIDATION
+=========================================
+-- Worksheets --
+WS: 1: SearchErrorLog Visible=Hidden
+WS: 2: Dashboard Visible=Visible
+WS: 3: Equipment Data Visible=Visible
+WS: 4: Mapping Visible=Visible
+WS: 5: ConfigSheet Visible=Visible
+WS: 6: ModeConfig Visible=Visible
+WS: 7: __Diagnostics Visible=Visible
+-- Named Ranges (Workbook Scope Only) --
+Name: _xleta.NUMBERVALUE -> =#NAME? | Addr=(invalid)
+Name: _xleta.PI -> =#NAME? | Addr=(invalid)
+Name: _xleta.PRICE -> =#NAME? | Addr=(invalid)
+Name: _xleta.RATE -> =#NAME? | Addr=(invalid)
+Name: ResultsStart -> =Dashboard!$B$8 | Addr=$B$8
+Name: ResultsStartCell -> =Dashboard!$B$8 | Addr=$B$8
+Name: SearchBox -> =Dashboard!$D$4:$D$4 | Addr=$D$4
+Name: Slicer_Functional_System -> ="" | Addr=(invalid)
+Name: Slicer_Functional_System_Category -> ="" | Addr=(invalid)
+Name: SlicerPulse -> =Dashboard!$Z$1 | Addr=$Z$1
+Name: SlicerPulseAnchor -> =Dashboard!$Z$1 | Addr=$Z$1
+Name: SlicerPulseCell -> =Dashboard!$Z$1 | Addr=$Z$1
+Name: StatusCell -> =Dashboard!$F$2:$F$3 | Addr=$F$2:$F$3
+Name: ValveNumSearchBox -> =Dashboard!$D$5 | Addr=$D$5
+-- Tables --
+Table: DataTable Rows=63484 Cols=21 DataR1C1=$A$2:$U$63485
+Columns: Functional System Category, Functional System, Work Area, Tag ID, SAP ID, Equipment Description, Physical Location, Object Type, Component from ESOMs, Remove, FullFuncLoc, Unit, FuncSysCode, FuncSubSysCode, FuncType, Maint Group, Valve Number, DetailTag, CustomDetails, Power Cabinet, Power Cabinet Location
+Table: tbl_Mapping Rows=568 Cols=2 DataR1C1=$A$2:$B$569
+Columns: RawTerm, StandardTerm
+Table: ConfigTable Rows=40 Cols=4 DataR1C1=$A$2:$D$41
+Columns: ConfigKey, ConfigValue, Type, Note
+Table: ModeConfigTable Rows=2 Cols=6 DataR1C1=$A$2:$F$3
+Columns: ModeName, Description, FilterFormula, OutputColumns, DisplayType, CustomHandler
+-- DataTableColumn Validation --
+âœ“ Config DataTableColumn found: CustomDetails
+âœ“ Config DataTableColumn found: DetailTag
+âœ“ Config DataTableColumn found: Equipment Description
+âœ“ Config DataTableColumn found: FullFuncLoc
+âœ“ Config DataTableColumn found: Functional System Category
+âœ“ Config DataTableColumn found: FuncSubSysCode
+âœ“ Config DataTableColumn found: Functional System
+âœ“ Config DataTableColumn found: Maint Group
+âœ“ Config DataTableColumn found: Object Type
+âœ“ Config DataTableColumn found: Physical Location
+âœ“ Config DataTableColumn found: Remove
+âœ“ Config DataTableColumn found: SAP ID
+âœ“ Config DataTableColumn found: Tag ID
+âœ“ Config DataTableColumn found: Unit
+âœ“ Config DataTableColumn found: Valve Number
+âœ“ Config DataTableColumn found: Work Area
+=========================================
+SNAPSHOT & VALIDATION COMPLETE
+=========================================

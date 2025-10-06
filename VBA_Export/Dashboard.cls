@@ -26,7 +26,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     Dim needRefresh As Boolean
 
     ' 1) Any dynamic input named range?
-    Dim coll As Collection: Set coll = mod_SearchEngine_Enhanced.AllInputNamedRanges_Enhanced()
+    Dim coll As Collection: Set coll = mod_SearchEngineCore.AllInputNamedRanges_Enhanced()
     Dim i As Long, r As Range
     For i = 1 To coll.Count
         Set r = coll(i)
@@ -43,7 +43,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         End If
     End If
 
-    If needRefresh Then mod_SearchEngine_Enhanced.RefreshResults_Enhanced
+    If needRefresh Then mod_SearchEngineCore.RefreshResults_Enhanced
 
 Done:
     Application.EnableEvents = True
@@ -51,8 +51,9 @@ End Sub
 
 Private Sub Worksheet_Activate()
     On Error Resume Next
-    EnsurePulseCell True
-    mod_SearchEngine_Enhanced.RefreshResults_Enhanced
+    mod_SearchEngineCore.EnsurePulseCell True
+    mod_SearchEngineCore.ClearTempSearchFilter
+    mod_SearchEngineCore.RefreshResults_Enhanced
 End Sub
 
 Private Sub Worksheet_Calculate()
@@ -65,7 +66,7 @@ Private Sub Worksheet_Calculate()
     If IsEmpty(lastPulse) Then lastPulse = c.Value
     If c.Value <> lastPulse Then
         lastPulse = c.Value
-    mod_SearchEngine_Enhanced.RefreshResults_Enhanced
+    mod_SearchEngineCore.RefreshResults_Enhanced
     End If
 End Sub
 
