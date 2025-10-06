@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_SearchEngineCore"
+'Attribute VB_Name = "mod_SearchEngineCore"  ' Commented out for manual copy/paste convenience
 Option Explicit
 
 ' ============================================================================

@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_MetadataSnapshot"
+'Attribute VB_Name = "mod_MetadataSnapshot"  ' Commented out for manual copy/paste convenience
 Option Explicit
 
 ' ============================================================================
