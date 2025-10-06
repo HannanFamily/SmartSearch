@@ -29,6 +29,19 @@ This project is a modular, high-performance Excel dashboard for industrial equip
 - **ConfigSheet & ModeConfigTable**: Central tables for configuration and search mode definitions.
 - **Dev Notes worksheet**: Tracks project goals, features, and future enhancements.
 
+## Code Quality & Validation Standards
+- **NEVER provide code without complete quality check**: Always perform comprehensive validation within entire project context before delivering any code
+- **Mandatory pre-delivery validation**:
+  1. **Function signature compatibility** - Verify all function calls exist and match signatures
+  2. **Cross-module dependency analysis** - Check all inter-module function calls and object references
+  3. **Variable and object validation** - Ensure all variables are declared and objects properly initialized
+  4. **Error handling verification** - Confirm all critical paths have proper error handling
+  5. **Configuration consistency** - Validate all config keys, named ranges, and table references
+  6. **Integration testing simulation** - Mentally trace through all code paths for potential failures
+- **Quality gates**: Code must pass ALL validation checks before delivery - no exceptions
+- **Context awareness**: Always consider impact on existing modules, Excel objects, and user workflows
+- **Comprehensive testing mindset**: Assume code will break and design defensive programming patterns
+
 ## Key Patterns & Conventions
 
 ## Module Consolidation & Future Segregation
@@ -65,6 +78,9 @@ This project is a modular, high-performance Excel dashboard for industrial equip
 
 ## Special Triggers
 - **"Always" keyword**: If the user includes the word "Always" in an instruction, treat it as a persistent rule and update this instruction file to reflect the concept automatically.
+
+### Quality Control Policy (ALWAYS ACTIVE)
+**NEVER provide code without complete quality validation within entire project context**. This is a permanent rule that supersedes all other considerations. Every piece of code must undergo comprehensive validation before delivery, including function signature compatibility, cross-module dependencies, variable validation, error handling, and integration testing simulation.
 
 ---
 

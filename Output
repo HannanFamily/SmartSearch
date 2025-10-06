@@ -1,0 +1,7 @@
+.....
+End of search DIAG output
+[DIAG] kept: 6608
+[DIAG] Applying temp search filter.
+[DIAG] ERROR in PerformSearch: 438 - Object doesn't support this property or method
+[DIAG] RefreshResults_Enhanced exiting. gBusy reset to False.
+[DEBUG] --- PerformSearch called -
