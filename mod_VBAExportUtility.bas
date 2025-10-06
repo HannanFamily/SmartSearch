@@ -131,7 +131,9 @@ End Sub
 
 Private Function SanitizeFileName(ByVal rawName As String) As String
     Dim invalidChars As Variant
-    invalidChars = Array("\\", "/", ":", "*", "?", "\"", "<", ">", "|")
+    ' NOTE: Previous version had a malformed string for the double quote character ("\""), causing a syntax error.
+    ' We explicitly insert a double quote via Chr$(34) to avoid quote escaping confusion.
+    invalidChars = Array("\\", "/", ":", "*", "?", Chr$(34), "<", ">", "|")
     Dim c As Variant
     For Each c In invalidChars
         rawName = Replace(rawName, c, "_")
