@@ -8,7 +8,10 @@
   4. Provide summary of project state and pending work
   5. Report any discrepancies or areas needing attention
 - **"Always" keyword**: If the user includes the word "Always" in an instruction, treat it as a persistent rule and update this instruction file to reflect the concept automatically.
-- **Always push after every change**: Commit and push to remote repository after every file modification, creation, or significant change to maintain continuous backup and synchronization.
+- (PAUSED) Previous rule: "Always push after every change". User has requested a freeze on automatic pushes until a stable version is established. Do NOT push unless explicitly instructed with a clear resume command (e.g., "Resume pushing" or "Start pushing again"). Local commits are allowed for checkpointing, but keep them minimal and clearly messaged.
+
+### Push Policy (Paused)
+Current status: PUSHING DISABLED by user request (date noted when change applied). All edits should remain local until user instructs to resume. When resuming, reinstate guidance to push after each significant change or adopt a batching cadence if the user specifies.
 
 ## Project Overview
 This project is a modular, high-performance Excel dashboard for industrial equipment search and display. It uses advanced VBA, dynamic configuration tables, and mode-driven search logic. The architecture is designed for maintainability, scalability, and easy transfer between environments.

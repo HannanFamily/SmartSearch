@@ -77,7 +77,8 @@ Public Function RunSearch(ByVal ModeName As String, Optional ByVal Criteria As V
     Set filteredIndices = ApplyFilters(cfg, srcData, Criteria)
 
     Dim rowCount As Long
-    rowCount = WriteOutput cfg, srcData, filteredIndices
+    ' NOTE: Parentheses required when capturing a function return value in VBA.
+    rowCount = WriteOutput(cfg, srcData, filteredIndices)
 
     LogMsg "RunSearch COMPLETE: " & ModeName & " rows=" & rowCount
     RunSearch = rowCount
@@ -213,7 +214,8 @@ End Function
 
 ' ----------------------------- Utilities -----------------------------------
 Private Function FindModeConfigTable() As ListObject
-    FindModeConfigTable = FindTableByName("ModeConfigTable")
+    ' Returning an object (ListObject) requires Set; missing Set caused "Invalid use of property".
+    Set FindModeConfigTable = FindTableByName("ModeConfigTable")
 End Function
 
 Private Function FindTableByName(ByVal tableName As String) As ListObject
@@ -276,8 +278,12 @@ Private Function Nz(ByVal v As Variant, Optional ByVal fallback As String = "") 
 End Function
 
 Private Function JsonEscape(ByVal s As String) As String
+    ' Escape backslash first
     s = Replace(s, "\", "\\")
-    s = Replace(s, """", "\"")
+    ' Escape double quotes -> \"
+    ' Using Chr$(34) to avoid confusing nested quotes
+    s = Replace(s, Chr$(34), "\\" & Chr$(34))
+    ' Normalize newlines
     s = Replace(s, vbCrLf, "\n")
     s = Replace(s, vbCr, "\n")
     s = Replace(s, vbLf, "\n")

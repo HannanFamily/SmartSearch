@@ -124,9 +124,23 @@ Private Function ComponentTypeString(t As VBIDE.vbext_ComponentType) As String
 End Function
 
 Private Sub EnsureFolder(ByVal path As String)
-    If Len(Dir$(path, vbDirectory)) = 0 Then
-        MkDir path
+    ' Error 52 (Bad file name or number) can occur if MkDir is called with a trailing
+    ' path separator (e.g., "C:\Folder\\") or an otherwise malformed path.
+    ' We normalize by trimming any trailing separators before checking/creating.
+    On Error GoTo EH
+    Dim cleanPath As String
+    cleanPath = path
+    Do While Right$(cleanPath, 1) = Application.PathSeparator And Len(cleanPath) > 3
+        cleanPath = Left$(cleanPath, Len(cleanPath) - 1)
+    Loop
+    If Len(Dir$(cleanPath, vbDirectory)) = 0 Then
+        MkDir cleanPath
     End If
+    Exit Sub
+EH:
+    Debug.Print "[EnsureFolder][ERROR] " & Err.Number & " - " & Err.Description & " Path=" & cleanPath
+    ' Propagate so caller can decide; silently failing would hide export failures.
+    Err.Raise Err.Number, "EnsureFolder", Err.Description
 End Sub
 
 Private Function SanitizeFileName(ByVal rawName As String) As String
